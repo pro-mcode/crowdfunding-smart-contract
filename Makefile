@@ -7,7 +7,7 @@ export
 endif
 
 
-.PHONY: all test clean deploy fund help install snapshot format anvil zktest
+.PHONY: all test clean deploy fund help install snapshot format anvil zktest sync-frontend
 
 help:
 	@echo "Makefile commands:"
@@ -89,3 +89,6 @@ fund:
 
 withdraw:
 	@forge script script/Interactions.s.sol:WithdrawFundMe --sender $(SENDER_ADDRESS) $(NETWORK_ARGS)
+
+sync-frontend:
+	@node scripts/sync-frontend-address.mjs
