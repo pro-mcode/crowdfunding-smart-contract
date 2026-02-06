@@ -70,7 +70,7 @@ export async function POST(request: Request) {
     recipient: String(payload.recipient ?? "").trim(),
     badge: String(payload.badge ?? "").trim(),
     tokenId: String(payload.tokenId ?? "").trim(),
-    issuedAt: new Date().toLocaleString(),
+    issuedAt: new Date().toISOString(),
     expiresAt,
   };
   const registry = listBadgeRegistry();

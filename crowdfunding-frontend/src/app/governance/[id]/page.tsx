@@ -307,74 +307,109 @@ export default function ProposalDetailPage() {
   const handleUpdate = async () => {
     if (!proposal) return;
     if (!window.ethereum) return;
-    const timestamp = new Date().toISOString();
-    const action = "proposal-update";
-    const message = `Phercons Governance ${action} ${proposal.id} ${timestamp}`;
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    });
-    const actor = String(accounts?.[0] ?? "");
-    if (!actor) return;
-    const signature = await window.ethereum.request({
-      method: "personal_sign",
-      params: [message, actor],
-    });
-    await fetch("/api/governance", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "proposal-update",
-        id: proposal.id,
-        actor,
-        signature,
-        message,
-        timestamp,
-        payload: {
-          title: editTitle,
-          track: editTrack,
-          summary: editSummary,
-          requestedEth: Number(editRequestedEth || 0),
-          status: editStatus,
-        },
-      }),
-    });
-    setIsEditing(false);
-    const response = await fetch("/api/governance");
-    const result = await response.json();
-    const updated = result?.data?.proposals?.find(
-      (item: Proposal) => item.id === proposal.id
-    );
-    if (updated) setProposal(updated);
+    try {
+      const timestamp = new Date().toISOString();
+      const action = "proposal-update";
+      const message = `Phercons Governance ${action} ${proposal.id} ${timestamp}`;
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const actor = String(accounts?.[0] ?? "");
+      if (!actor) {
+        throw new Error("Connect a wallet to update proposals.");
+      }
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [message, actor],
+      });
+      const updateResponse = await fetch("/api/governance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "proposal-update",
+          id: proposal.id,
+          actor,
+          signature,
+          message,
+          timestamp,
+          payload: {
+            title: editTitle,
+            track: editTrack,
+            summary: editSummary,
+            requestedEth: Number(editRequestedEth || 0),
+            status: editStatus,
+          },
+        }),
+      });
+      if (!updateResponse.ok) {
+        const result = await updateResponse.json().catch(() => null);
+        throw new Error(result?.error ?? "Unable to update proposal.");
+      }
+      setIsEditing(false);
+      const response = await fetch("/api/governance");
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error ?? "Unable to refresh proposal.");
+      }
+      const result = await response.json();
+      const updated = result?.data?.proposals?.find(
+        (item: Proposal) => item.id === proposal.id
+      );
+      if (updated) setProposal(updated);
+    } catch (err) {
+      console.error(err);
+      setIsEditing(false);
+      window.alert(
+        err instanceof Error ? err.message : "Unable to update proposal."
+      );
+    }
   };
 
   const handleRemove = async () => {
     if (!proposal) return;
     if (!window.ethereum) return;
-    const timestamp = new Date().toISOString();
-    const action = "proposal-delete";
-    const message = `Phercons Governance ${action} ${proposal.id} ${timestamp}`;
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    });
-    const actor = String(accounts?.[0] ?? "");
-    if (!actor) return;
-    const signature = await window.ethereum.request({
-      method: "personal_sign",
-      params: [message, actor],
-    });
-    await fetch("/api/governance", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "proposal",
-        id: proposal.id,
-        actor,
-        signature,
-        message,
-        timestamp,
-      }),
-    });
-    window.location.href = "/governance";
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this proposal? This action cannot be undone."
+    );
+    if (!confirmed) return;
+    try {
+      const timestamp = new Date().toISOString();
+      const action = "proposal-delete";
+      const message = `Phercons Governance ${action} ${proposal.id} ${timestamp}`;
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      const actor = String(accounts?.[0] ?? "");
+      if (!actor) {
+        throw new Error("Connect a wallet to delete proposals.");
+      }
+      const signature = await window.ethereum.request({
+        method: "personal_sign",
+        params: [message, actor],
+      });
+      const response = await fetch("/api/governance", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "proposal",
+          id: proposal.id,
+          actor,
+          signature,
+          message,
+          timestamp,
+        }),
+      });
+      if (!response.ok) {
+        const result = await response.json().catch(() => null);
+        throw new Error(result?.error ?? "Unable to delete proposal.");
+      }
+      window.location.href = "/governance";
+    } catch (err) {
+      console.error(err);
+      window.alert(
+        err instanceof Error ? err.message : "Unable to delete proposal."
+      );
+    }
   };
 
   return (

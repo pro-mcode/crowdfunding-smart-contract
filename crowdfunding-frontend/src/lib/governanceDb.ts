@@ -305,6 +305,17 @@ export const createArticle = (article: ArticleRow) => {
   ).run(article);
 };
 
+const allowedArticleUpdateFields = new Set([
+  "title",
+  "summary",
+  "contentHtml",
+  "tags",
+  "coverUrl",
+  "galleryUrls",
+  "fileUrl",
+  "updatedAt",
+]);
+
 export const updateArticle = (
   id: string,
   updates: Partial<Omit<ArticleRow, "id" | "createdAt">>
@@ -313,6 +324,7 @@ export const updateArticle = (
   const values: unknown[] = [];
   Object.entries(updates).forEach(([key, value]) => {
     if (value === undefined) return;
+    if (!allowedArticleUpdateFields.has(key)) return;
     fields.push(`${key} = ?`);
     values.push(value);
   });
@@ -361,12 +373,35 @@ export const getProposalById = (id: string) => {
     .get(id) as ProposalRow | undefined;
 };
 
+export const getVoteById = (id: string) => {
+  return db
+    .prepare("SELECT * FROM votes WHERE id = ?")
+    .get(id) as VoteRow | undefined;
+};
+
+export const getUnlockById = (id: string) => {
+  return db
+    .prepare("SELECT * FROM unlocks WHERE id = ?")
+    .get(id) as UnlockRow | undefined;
+};
+
 export const createProposal = (proposal: ProposalRow) => {
   db.prepare(
     `INSERT INTO proposals (id, title, track, summary, proposer, proposerAddress, proposerHandle, requestedEth, status, submittedAt)
      VALUES (@id, @title, @track, @summary, @proposer, @proposerAddress, @proposerHandle, @requestedEth, @status, @submittedAt)`
   ).run(proposal);
 };
+
+const allowedProposalUpdateFields = new Set([
+  "title",
+  "track",
+  "summary",
+  "proposer",
+  "proposerAddress",
+  "proposerHandle",
+  "requestedEth",
+  "status",
+]);
 
 export const updateProposal = (
   id: string,
@@ -376,6 +411,7 @@ export const updateProposal = (
   const values: unknown[] = [];
   Object.entries(updates).forEach(([key, value]) => {
     if (value === undefined) return;
+    if (!allowedProposalUpdateFields.has(key)) return;
     fields.push(`${key} = ?`);
     values.push(value);
   });

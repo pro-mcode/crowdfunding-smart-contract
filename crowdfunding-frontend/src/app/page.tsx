@@ -17,10 +17,10 @@ import WalletPanel from "@/components/WalletPanel";
 import FundPanel from "@/components/FundPanel";
 import ActivityPanel from "@/components/ActivityPanel";
 import ResearchPanel from "@/components/ResearchPanel";
-import VaultOpsPanel from "@/components/VaultOpsPanel";
-import GovernancePanel from "@/components/GovernancePanel";
-import SecurityPanel from "@/components/SecurityPanel";
-import AdvancedPanel from "@/components/AdvancedPanel";
+// import VaultOpsPanel from "@/components/VaultOpsPanel";
+// import GovernancePanel from "@/components/GovernancePanel";
+// import SecurityPanel from "@/components/SecurityPanel";
+// import AdvancedPanel from "@/components/AdvancedPanel";
 
 type WalletState = {
   address: string | null;
@@ -941,14 +941,26 @@ export default function Home() {
       const auth = await getAdminAuth();
       const summary =
         publication.summary?.trim() || "Publication registry entry.";
+      const safeUrl = (() => {
+        try {
+          const parsed = new URL(publication.url.trim());
+          if (!["http:", "https:"].includes(parsed.protocol)) return null;
+          return parsed.toString();
+        } catch {
+          return null;
+        }
+      })();
+      if (!safeUrl) {
+        throw new Error("Publication URL must be a valid http(s) link.");
+      }
       const payload = {
         title: publication.title,
         summary,
-        contentHtml: `<p>${summary}</p><p><a href=\"${publication.url}\" target=\"_blank\" rel=\"noreferrer\">Open publication</a></p>`,
+        contentHtml: `<p><a href=\"${safeUrl}\" target=\"_blank\" rel=\"noreferrer\">Open publication</a></p>`,
         tags: ["publication", "registry"],
         coverUrl: null,
         galleryUrls: [],
-        fileUrl: publication.url,
+        fileUrl: safeUrl,
       };
       const response = await fetch("/api/articles", {
         method: "POST",

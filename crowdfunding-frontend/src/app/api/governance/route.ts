@@ -12,6 +12,8 @@ import {
   deleteUnlock,
   updateProposal,
   getProposalById,
+  getVoteById,
+  getUnlockById,
   listBadges,
   listBadgeRegistry,
   logAudit,
@@ -340,11 +342,63 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ ok: true });
   }
   if (body?.type === "vote") {
+    const verify = verifyActor({
+      actor: body.actor,
+      signature: body.signature,
+      message: body.message,
+      timestamp: body.timestamp,
+      action: "vote-delete",
+      targetId: body.id,
+    });
+    if (!verify.ok) {
+      return NextResponse.json({ ok: false, error: verify.error }, { status: 401 });
+    }
+    const vote = getVoteById(body.id);
+    if (!vote) {
+      return NextResponse.json({ ok: false, error: "Vote not found." }, { status: 404 });
+    }
+    const isAdmin = adminAddress && verify.actor === adminAddress;
+    if (!isAdmin && vote.voter.toLowerCase() !== verify.actor) {
+      return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 403 });
+    }
     deleteVote(body.id);
+    logAudit("vote_delete", verify.actor, body.id);
     return NextResponse.json({ ok: true });
   }
   if (body?.type === "unlock") {
+    const verify = verifyActor({
+      actor: body.actor,
+      signature: body.signature,
+      message: body.message,
+      timestamp: body.timestamp,
+      action: "unlock-delete",
+      targetId: body.id,
+    });
+    if (!verify.ok) {
+      return NextResponse.json({ ok: false, error: verify.error }, { status: 401 });
+    }
+    const unlock = getUnlockById(body.id);
+    if (!unlock) {
+      return NextResponse.json({ ok: false, error: "Unlock not found." }, { status: 404 });
+    }
+    const isAdmin = adminAddress && verify.actor === adminAddress;
+    if (!isAdmin) {
+      if (!unlock.proposalId) {
+        return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 403 });
+      }
+      const proposal = getProposalById(unlock.proposalId);
+      if (!proposal) {
+        return NextResponse.json({ ok: false, error: "Proposal not found." }, { status: 404 });
+      }
+      const actorHandle = makeHandle(verify.actor);
+      const proposerHandle = (proposal.proposerHandle ?? "").toLowerCase();
+      const proposerAddress = (proposal.proposerAddress ?? proposal.proposer ?? "").toLowerCase();
+      if (actorHandle !== proposerHandle && verify.actor !== proposerAddress) {
+        return NextResponse.json({ ok: false, error: "Unauthorized." }, { status: 403 });
+      }
+    }
     deleteUnlock(body.id);
+    logAudit("unlock_delete", verify.actor, body.id);
     return NextResponse.json({ ok: true });
   }
   return NextResponse.json(
