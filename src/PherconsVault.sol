@@ -7,9 +7,9 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
 import {PriceConverter} from "./PriceConverter.sol";
 
 // Custom errors
-error FundMe__NotOwner();
-error FundMe__InsufficientEth(uint256 usdAmount, uint256 minimumUsd);
-error FundMe__WithdrawFailed();
+error PherconsVault__NotOwner();
+error PherconsVault__InsufficientEth(uint256 usdAmount, uint256 minimumUsd);
+error PherconsVault__WithdrawFailed();
 
 /**
  * @title Simple crowdfunding contract
@@ -17,7 +17,7 @@ error FundMe__WithdrawFailed();
  * @notice Accepts ETH contributions and lets the owner withdraw
  * @dev Uses Chainlink price feeds via a library for USD conversions
  */
-contract FundMe {
+contract PherconsVault {
     // Library usage
     using PriceConverter for uint256;
 
@@ -35,7 +35,7 @@ contract FundMe {
 
     // Access control
     modifier onlyOwner() {
-        if (msg.sender != i_owner) revert FundMe__NotOwner();
+        if (msg.sender != i_owner) revert PherconsVault__NotOwner();
         _;
     }
 
@@ -65,7 +65,7 @@ contract FundMe {
     /// @notice Funds our contract based on the ETH/USD price
     function fund() public payable {
         uint256 usdAmount = msg.value.getConversionRate(i_priceFeed);
-        if (usdAmount < MINIMUM_USD) revert FundMe__InsufficientEth(usdAmount, MINIMUM_USD);
+        if (usdAmount < MINIMUM_USD) revert PherconsVault__InsufficientEth(usdAmount, MINIMUM_USD);
 
         s_addressToAmountFunded[msg.sender] += msg.value;
         if (!s_isFunder[msg.sender]) {
@@ -87,7 +87,7 @@ contract FundMe {
         // Use call to forward all gas and handle return status.
         uint256 payout = address(this).balance;
         (bool success,) = i_owner.call{value: payout}("");
-        if (!success) revert FundMe__WithdrawFailed();
+        if (!success) revert PherconsVault__WithdrawFailed();
         emit Withdrawn(i_owner, payout);
     }
 
@@ -103,7 +103,7 @@ contract FundMe {
         // Use call to forward all gas and handle return status.
         uint256 payout = address(this).balance;
         (bool success,) = i_owner.call{value: payout}("");
-        if (!success) revert FundMe__WithdrawFailed();
+        if (!success) revert PherconsVault__WithdrawFailed();
         emit Withdrawn(i_owner, payout);
     }
 

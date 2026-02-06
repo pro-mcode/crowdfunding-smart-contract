@@ -61,7 +61,7 @@ anvil :; anvil -m 'test test test test test test test test test test test junk' 
 zk-anvil :; npx zksync-cli dev start
 
 deploy:
-	@forge script script/DeployFundMe.s.sol:DeployFundMe $(NETWORK_ARGS)
+	@forge script script/DeployPherconsVault.s.sol:DeployPherconsVault $(NETWORK_ARGS)
 
 NETWORK ?= anvil
 NETWORK_ARGS := --rpc-url $(ANVIL_RPC_URL) --private-key $(ANVIL_PRIVATE_KEY) --broadcast
@@ -75,7 +75,7 @@ deploy-sepolia: deploy
 
 # Note: Alchemy zkSync RPC can be flaky at times
 deploy-zk:
-	forge create src/FundMe.sol:FundMe --rpc-url $(ZKSYNC_RPC_URL) --private-key $(ZKSYNC_LOCAL_KEY) --constructor-args $(shell forge create test/mock/MockV3Aggregator.sol:MockV3Aggregator --rpc-url http://127.0.0.1:8011 --private-key $(ZKSYNC_LOCAL_KEY) --constructor-args 8 200000000000 --legacy --zksync --json | python -c "import json,sys; print(json.load(sys.stdin)['deployedTo'])") --legacy --zksync
+	forge create src/PherconsVault.sol:PherconsVault --rpc-url $(ZKSYNC_RPC_URL) --private-key $(ZKSYNC_LOCAL_KEY) --constructor-args $(shell forge create test/mock/MockV3Aggregator.sol:MockV3Aggregator --rpc-url http://127.0.0.1:8011 --private-key $(ZKSYNC_LOCAL_KEY) --constructor-args 8 200000000000 --legacy --zksync --json | python -c "import json,sys; print(json.load(sys.stdin)['deployedTo'])") --legacy --zksync
 
 deploy-zk-sepolia:
 	forge create src/FundMe.sol:FundMe --rpc-url ${ZKSYNC_SEPOLIA_RPC_URL} --account default --constructor-args 0xfEefF7c3fB57d18C5C6Cdd71e45D2D0b4F9377bF --legacy --zksync
@@ -85,10 +85,10 @@ deploy-zk-sepolia:
 SENDER_ADDRESS := <sender's address>
  
 fund:
-	@forge script script/Interactions.s.sol:FundFundMe --sender $(SENDER_ADDRESS) $(NETWORK_ARGS)
+	@forge script script/Interactions.s.sol:FundPherconsVault --sender $(SENDER_ADDRESS) $(NETWORK_ARGS)
 
 withdraw:
-	@forge script script/Interactions.s.sol:WithdrawFundMe --sender $(SENDER_ADDRESS) $(NETWORK_ARGS)
+	@forge script script/Interactions.s.sol:WithdrawPherconsVault --sender $(SENDER_ADDRESS) $(NETWORK_ARGS)
 
 sync-frontend:
 	@node scripts/sync-frontend-address.mjs

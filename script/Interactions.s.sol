@@ -2,35 +2,37 @@
 pragma solidity ^0.8.19;
 
 import {Script, console} from "forge-std/Script.sol";
-import {FundMe} from "../src/FundMe.sol";
+import {PherconsVault} from "../src/PherconsVault.sol";
 import {DevOpsTools} from "foundry-devops/src/DevOpsTools.sol";
 
-contract FundFundMe is Script {
+contract FundPherconsVault is Script {
     uint256 internal constant SEND_VALUE = 0.1 ether;
 
-    function fundFundMe(address mostRecentlyDeployed) public {
+    function fundPherconsVault(address mostRecentlyDeployed) public {
         vm.startBroadcast();
-        FundMe(payable(mostRecentlyDeployed)).fund{value: SEND_VALUE}();
+        PherconsVault(payable(mostRecentlyDeployed)).fund{value: SEND_VALUE}();
         vm.stopBroadcast();
-        console.log("Funded FundMe with %s", SEND_VALUE);
+        console.log("Funded PherconsVault with %s", SEND_VALUE);
     }
 
     function run() external {
-        address mostRecentlyDeployed = DevOpsTools.get_most_recent_deployment("FundMe", block.chainid);
-        fundFundMe(mostRecentlyDeployed);
+        address mostRecentlyDeployed =
+            DevOpsTools.get_most_recent_deployment("PherconsVault", block.chainid);
+        fundPherconsVault(mostRecentlyDeployed);
     }
 }
 
-contract WithdrawFundMe is Script {
-    function withdrawFundMe(address mostRecentlyDeployed) public {
+contract WithdrawPherconsVault is Script {
+    function withdrawPherconsVault(address mostRecentlyDeployed) public {
         vm.startBroadcast();
-        FundMe(payable(mostRecentlyDeployed)).withdraw();
+        PherconsVault(payable(mostRecentlyDeployed)).withdraw();
         vm.stopBroadcast();
-        console.log("Withdrew FundMe balance.");
+        console.log("Withdrew PherconsVault balance.");
     }
 
     function run() external {
-        address mostRecentlyDeployed = DevOpsTools.get_most_recent_deployment("FundMe", block.chainid);
-        withdrawFundMe(mostRecentlyDeployed);
+        address mostRecentlyDeployed =
+            DevOpsTools.get_most_recent_deployment("PherconsVault", block.chainid);
+        withdrawPherconsVault(mostRecentlyDeployed);
     }
 }

@@ -2,16 +2,16 @@
 
 pragma solidity 0.8.19;
 
-import {FundMe, FundMe__InsufficientEth, FundMe__WithdrawFailed} from "../../src/FundMe.sol";
+import {PherconsVault, PherconsVault__InsufficientEth, PherconsVault__WithdrawFailed} from "../../src/PherconsVault.sol";
 import {MockV3Aggregator} from "../mock/MockV3Aggregator.sol";
 import {Test} from "forge-std/Test.sol";
 
-contract FundMeTest is Test {
+contract PherconsVaultTest is Test {
     uint8 private constant DECIMALS = 8;
     int256 private constant INITIAL_PRICE = 2000e8;
     uint256 private constant SEND_VALUE = 0.1 ether;
 
-    FundMe public fundMe;
+    PherconsVault public fundMe;
     MockV3Aggregator public mockPriceFeed;
     address public constant USER = address(1);
 
@@ -20,7 +20,7 @@ contract FundMeTest is Test {
 
     function setUp() public {
         mockPriceFeed = new MockV3Aggregator(DECIMALS, INITIAL_PRICE);
-        fundMe = new FundMe(address(mockPriceFeed));
+        fundMe = new PherconsVault(address(mockPriceFeed));
         vm.deal(USER, 10 ether);
     }
 
@@ -33,7 +33,11 @@ contract FundMeTest is Test {
     function testFundRevertsWhenValueIsTooLow() public {
         vm.prank(USER);
         vm.expectRevert(
-            abi.encodeWithSelector(FundMe__InsufficientEth.selector, uint256(2000), fundMe.MINIMUM_USD())
+            abi.encodeWithSelector(
+                PherconsVault__InsufficientEth.selector,
+                uint256(2000),
+                fundMe.MINIMUM_USD()
+            )
         );
         fundMe.fund{value: 1 wei}();
     }
@@ -60,16 +64,16 @@ contract FundMeTest is Test {
         vm.deal(address(owner), 1 ether);
         owner.fund{value: SEND_VALUE}();
 
-        vm.expectRevert(FundMe__WithdrawFailed.selector);
+        vm.expectRevert(PherconsVault__WithdrawFailed.selector);
         owner.withdraw();
     }
 }
 
 contract RevertingOwner {
-    FundMe public fundMe;
+    PherconsVault public fundMe;
 
     constructor(address priceFeed) {
-        fundMe = new FundMe(priceFeed);
+        fundMe = new PherconsVault(priceFeed);
     }
 
     function fund() external payable {
