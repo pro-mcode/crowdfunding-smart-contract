@@ -23,13 +23,17 @@ export default function HeroHeader({
             Crowdfunding Control Room
           </p>
           <h1 className="heading-serif text-3xl font-semibold tracking-tight sm:text-4xl md:text-5xl">
-            FundMe is built for verifiable, price-protected ETH campaigns.
+            Verifiable, price-protected R&D funding starts with Phercons Vault.
           </h1>
           <p className="max-w-2xl text-sm text-[#5e5242]">
-            A tactile dashboard to connect wallets, fund campaigns, and manage
-            owner withdrawals on-chain. Every action is recorded and backed by
-            Chainlink pricing logic.
+            A high-trust control room for funding, withdrawals, and governance —
+            all enforced by Chainlink pricing logic.
           </p>
+          <div className="flex flex-wrap gap-2 text-[10px] text-[#6b5b45]">
+            <span className="chip">Research Treasury</span>
+            <span className="chip">Governance Ready</span>
+            <span className="chip">Audit Trail</span>
+          </div>
         </div>
         <div className="flex flex-col items-start gap-3 text-xs">
           <span className="rounded-full border border-[#d3c2a6] bg-[#fff7ea] px-4 py-2">
