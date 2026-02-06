@@ -1,0 +1,82 @@
+[
+  {
+    "chainId": 11155111,
+    "contractAddress": "0xb59e1cda85311517c1e2467b2799e06d73cb192f",
+    "analytics": {
+      "totalFundedEth": "0.1190",
+      "uniqueFunders": 1,
+      "totalFundingCount": 3,
+      "lastFundedAt": "2/5/2026, 12:30:12 PM",
+      "lastWithdrawnAt": "2/5/2026, 12:29:24 PM"
+    },
+    "priceState": {
+      "minEthForUsd": "0.002438",
+      "safeMinEthForUsd": "0.002462",
+      "usdPerEth": "2051.08",
+      "feedUpdatedAgo": "9m ago"
+    },
+    "simulateEnabled": false,
+    "simulatedPrice": "2000",
+    "savedAt": "2026-02-05T13:34:58.102Z"
+  },
+  {
+    "chainId": 11155111,
+    "contractAddress": "0xb59e1cda85311517c1e2467b2799e06d73cb192f",
+    "analytics": {
+      "totalFundedEth": "0.1190",
+      "uniqueFunders": 1,
+      "totalFundingCount": 3,
+      "lastFundedAt": "2/5/2026, 12:30:12 PM",
+      "lastWithdrawnAt": "2/5/2026, 12:29:24 PM"
+    },
+    "priceState": {
+      "minEthForUsd": "0.002438",
+      "safeMinEthForUsd": "0.002462",
+      "usdPerEth": "2051.08",
+      "feedUpdatedAgo": "9m ago"
+    },
+    "simulateEnabled": false,
+    "simulatedPrice": "2000",
+    "savedAt": "2026-02-05T13:35:00.658Z"
+  },
+  {
+    "chainId": 11155111,
+    "contractAddress": "0xb59e1cda85311517c1e2467b2799e06d73cb192f",
+    "analytics": {
+      "totalFundedEth": "0.3502",
+      "uniqueFunders": 1,
+      "totalFundingCount": 14,
+      "lastFundedAt": "2/5/2026, 6:30:12 PM",
+      "lastWithdrawnAt": "2/5/2026, 6:22:24 PM"
+    },
+    "priceState": {
+      "minEthForUsd": "0.002589",
+      "safeMinEthForUsd": "0.002615",
+      "usdPerEth": "1931.21",
+      "feedUpdatedAgo": "5m ago"
+    },
+    "simulateEnabled": false,
+    "simulatedPrice": "2000",
+    "savedAt": "2026-02-05T18:29:25.668Z"
+  },
+  {
+    "chainId": 11155111,
+    "contractAddress": "0xb59e1cda85311517c1e2467b2799e06d73cb192f",
+    "analytics": {
+      "totalFundedEth": "0.3502",
+      "uniqueFunders": 1,
+      "totalFundingCount": 14,
+      "lastFundedAt": "2/5/2026, 6:30:12 PM",
+      "lastWithdrawnAt": "2/5/2026, 6:22:24 PM"
+    },
+    "priceState": {
+      "minEthForUsd": "0.002589",
+      "safeMinEthForUsd": "0.002615",
+      "usdPerEth": "1931.21",
+      "feedUpdatedAgo": "5m ago"
+    },
+    "simulateEnabled": false,
+    "simulatedPrice": "2000",
+    "savedAt": "2026-02-05T18:29:26.522Z"
+  }
+]
