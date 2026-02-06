@@ -1,66 +1,84 @@
-## Foundry
+# Crowdfunding Research Stack
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+This repository combines a crowdfunding smart contract with a research-oriented
+frontend. The goal is to test price-protected funding mechanics, observe on-chain
+behavior, and prototype R&D workflows directly in the UI.
 
-Foundry consists of:
+## What This Project Does
 
-- **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
-- **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
-- **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
-- **Chisel**: Fast, utilitarian, and verbose solidity REPL.
+- Enforces a USD-denominated minimum on funding.
+- Uses Chainlink price feeds for real-time ETH/USD conversion.
+- Exposes owner-only withdrawals.
+- Collects on-chain activity to surface research metrics in the frontend.
+- Provides simulation and threshold experiments without changing contracts.
 
-## Documentation
+## Smart Contract Highlights
 
+- `PherconsVault` enforces a minimum USD threshold and emits `Funded`/`Withdrawn`.
+- `PriceConverter` normalizes feed decimals and blocks stale prices.
+- Scripts deploy to local Anvil, Sepolia, and zkSync environments.
+
+## Research-Oriented Features (Frontend)
+
+- **Risk profile:** feed freshness, min funding threshold, price reference.
+- **Experiment dashboard:** compares $5, $10, $20 thresholds.
+- **Simulation mode:** override price feed with a simulated ETH price.
+- **Event analytics:** total funded, unique funders, last fund/withdraw event.
+
+## Quickstart
+
+### Build contracts
+```shell
+forge build
+```
+
+### Run tests
+```shell
+forge test
+```
+
+### Deploy locally (Anvil)
+```shell
+anvil
+make deploy
+```
+
+### Deploy to Sepolia
+```shell
+make deploy-sepolia
+```
+
+### Sync frontend addresses
+```shell
+make sync-frontend
+```
+
+### Frontend (Next.js)
+```shell
+cd crowdfunding-frontend
+npm install
+npm run dev
+```
+
+## Frontend Configuration
+
+`crowdfunding-frontend/.env.local`
+```bash
+NEXT_PUBLIC_CHAIN_ID=31337
+NEXT_PUBLIC_FUNDME_ADDRESS=0x...
+```
+
+If no address is provided, the UI reads from
+`crowdfunding-frontend/src/lib/deployments.json`, which is generated from
+Foundry broadcasts via `make sync-frontend`.
+
+## Research Workflow Ideas
+
+- Track success rate of contributions at different price regimes.
+- Simulate price drops and observe minimum funding resilience.
+- Compare thresholds without redeploying contracts.
+
+## Tooling Notes
+
+Foundry is used for compilation, testing, and deployment. See:
 https://book.getfoundry.sh/
-
-## Usage
-
-### Build
-
-```shell
-$ forge build
-```
-
-### Test
-
-```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
-```
-
-### Deploy
-
-```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
-```
-
-### Cast
-
-```shell
-$ cast <subcommand>
-```
-
-### Help
-
-```shell
-$ forge --help
-$ anvil --help
-$ cast --help
-```
