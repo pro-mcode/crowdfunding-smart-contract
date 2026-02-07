@@ -8,9 +8,9 @@ export const runtime = "nodejs";
 
 export async function GET(
   _request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const snapshotId = params?.id;
+  const snapshotId = (await params)?.id;
   if (!snapshotId) {
     return NextResponse.json(
       { ok: false, error: "Snapshot id required." },

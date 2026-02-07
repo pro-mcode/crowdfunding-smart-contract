@@ -69,7 +69,31 @@ export async function POST(request: Request) {
     );
   }
 
-  const gistPayload = await readGistPayload(gistUrl);
+  let gistPayload: {
+    handle?: string;
+    address?: string;
+    signature?: string;
+    timestamp?: number;
+  };
+  try {
+    gistPayload = await readGistPayload(gistUrl);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Unable to read Gist.";
+    const knownErrors = new Set([
+      "Invalid Gist URL.",
+      "Unable to load Gist.",
+      "Gist has no files.",
+      "Unable to read Gist content.",
+      "Gist content must be JSON.",
+    ]);
+    if (knownErrors.has(message)) {
+      return NextResponse.json({ ok: false, error: message }, { status: 400 });
+    }
+    return NextResponse.json(
+      { ok: false, error: "Unable to verify Gist payload." },
+      { status: 500 }
+    );
+  }
   const gistHandle = String(gistPayload?.handle ?? "").trim();
   const address = String(gistPayload?.address ?? "").toLowerCase();
   const signature = String(gistPayload?.signature ?? "");

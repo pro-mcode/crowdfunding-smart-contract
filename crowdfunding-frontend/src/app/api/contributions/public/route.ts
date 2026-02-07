@@ -67,15 +67,14 @@ export async function POST(request: Request) {
     );
   }
 
-  const occurredAt = occurredAtRaw
-    ? new Date(occurredAtRaw).toISOString()
-    : new Date().toISOString();
-  if (Number.isNaN(new Date(occurredAt).getTime())) {
+  const occurredAtDate = occurredAtRaw ? new Date(occurredAtRaw) : new Date();
+  if (Number.isNaN(occurredAtDate.getTime())) {
     return NextResponse.json(
       { ok: false, error: "Invalid occurred date." },
       { status: 400 }
     );
   }
+  const occurredAt = occurredAtDate.toISOString();
 
   const message = buildContributionMessage({
     address,

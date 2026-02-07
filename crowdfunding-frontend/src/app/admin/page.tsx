@@ -366,6 +366,23 @@ export default function AdminPage() {
     setBuckets((prev) => [{ id: crypto.randomUUID(), ...bucket }, ...prev]);
   };
 
+  const sanitizeUrlForHtmlAttribute = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    let encoded = trimmed;
+    try {
+      encoded = encodeURI(trimmed);
+    } catch {
+      encoded = trimmed;
+    }
+    return encoded
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
+  };
+
   const removeBucket = (id: string) => {
     setBuckets((prev) => prev.filter((item) => item.id !== id));
   };
@@ -388,16 +405,18 @@ export default function AdminPage() {
     summary: string;
   }) => {
     try {
+      const url = publication.url.trim();
+      const safeUrl = sanitizeUrlForHtmlAttribute(url);
       const summary =
         publication.summary?.trim() || "Publication registry entry.";
       const payload = {
         title: publication.title,
         summary,
-        contentHtml: `<p><a href=\"${publication.url}\" target=\"_blank\" rel=\"noreferrer\">Open publication</a></p>`,
+        contentHtml: `<p><a href="${safeUrl}" target="_blank" rel="noreferrer">Open publication</a></p>`,
         tags: ["publication", "registry"],
         coverUrl: null,
         galleryUrls: [],
-        fileUrl: publication.url,
+        fileUrl: url,
       };
       const auth = await getAdminAuth();
       const response = await fetch("/api/articles", {
@@ -444,12 +463,13 @@ export default function AdminPage() {
   }) => {
     const title = publication.title.trim();
     const url = publication.url.trim();
+    const safeUrl = sanitizeUrlForHtmlAttribute(url);
     const summary =
       publication.summary?.trim() || "Publication registry entry.";
     const payload = {
       title,
       summary,
-      contentHtml: `<p><a href=\"${url}\" target=\"_blank\" rel=\"noreferrer\">Open publication</a></p>`,
+      contentHtml: `<p><a href="${safeUrl}" target="_blank" rel="noreferrer">Open publication</a></p>`,
       tags: ["publication", "registry"],
       coverUrl: null,
       galleryUrls: [],
