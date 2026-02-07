@@ -70,8 +70,8 @@ export default function SecurityPanel({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="grid gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
+      <div className="grid gap-6 lg:grid-cols-2 items-start">
+        <div className="grid h-fit gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
           <div className="flex items-center justify-between">
             <p className="uppercase tracking-[0.35em]">Multi-sig Withdrawals</p>
             <span className="text-[10px] text-[#6b5b45]">
@@ -236,7 +236,7 @@ export default function SecurityPanel({
           </div>
         </div>
 
-        <div className="grid gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
+        <div className="grid h-fit gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
           <p className="uppercase tracking-[0.35em]">Time-locked Reserves</p>
           <form
             className="grid gap-2"
@@ -310,7 +310,7 @@ export default function SecurityPanel({
           </div>
         </div>
 
-        <div className="col-span-full grid gap-4 rounded-2xl border border-[#eadfcf] bg-[#fff7ea] p-4 text-xs text-[#6b5b45]">
+        <div className="col-span-full grid h-fit gap-4 rounded-2xl border border-[#eadfcf] bg-[#fff7ea] p-4 text-xs text-[#6b5b45]">
           <p className="uppercase tracking-[0.35em]">Audit & Compliance Exports</p>
           <p className="text-[11px] text-[#5e5242]">
             Generate investor-ready reporting with current governance, security,

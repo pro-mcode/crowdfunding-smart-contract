@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
 import Image from "next/image";
+import SiteShell from "@/components/SiteShell";
 
 type Article = {
   id: string;
@@ -62,22 +61,20 @@ export default function ResearchPage() {
   });
 
   return (
-    <div className="page-shell min-h-screen bg-[#f5f0e6] text-[#1c1914]">
-      <div className="page-transition relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-16">
-        <NavBar />
-
-        <div className="flex flex-col gap-2">
+    <SiteShell>
+      <div className="flex flex-col gap-8">
+        <header className="glass-panel animate-fade flex flex-col gap-4 p-6">
           <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
             Research Articles
           </p>
-          <h1 className="font-spectral text-3xl text-[#1c1914]">
+          <h1 className="heading-serif text-3xl text-[#1c1914]">
             Phercons Research Library
           </h1>
           <p className="text-sm text-[#5e5242]">
             Curated research outputs, benchmarking reports, and archived
             experiments for stakeholders.
           </p>
-        </div>
+        </header>
 
         <div className="glass-panel animate-fade flex flex-col gap-4 p-6">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -133,9 +130,7 @@ export default function ResearchPage() {
             </div>
           )}
         </div>
-
-        <Footer />
       </div>
-    </div>
+    </SiteShell>
   );
 }

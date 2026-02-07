@@ -2,16 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { BrowserProvider, Contract, formatEther } from "ethers";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
+import SiteShell from "@/components/SiteShell";
 import VaultOpsPanel from "@/components/VaultOpsPanel";
 import SecurityPanel from "@/components/SecurityPanel";
 import AdvancedPanel from "@/components/AdvancedPanel";
+import BadgeTrackingPanel from "@/components/BadgeTrackingPanel";
+import ArticleTrackingPanel from "@/components/ArticleTrackingPanel";
+import PublicationTrackingPanel from "@/components/PublicationTrackingPanel";
+import BadgeAutomationPanel from "@/components/BadgeAutomationPanel";
 import ResearchArticlesPanel, {
   ResearchArticle,
 } from "@/components/ResearchArticlesPanel";
+import VaultRegistryPanel from "@/components/VaultRegistryPanel";
+import LearnRegistryPanel from "@/components/LearnRegistryPanel";
 import { FUNDME_ABI } from "@/lib/fundmeAbi";
 import { FUNDME_ADDRESS, DEFAULT_CHAIN_ID, getFundMeAddress } from "@/lib/network";
+import type { VaultCatalogEntry } from "@/lib/vaultCatalog";
+import type { LearnEntry } from "@/lib/learnCatalog";
 
 export default function AdminPage() {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
@@ -27,7 +34,7 @@ export default function AdminPage() {
     { id: string; title: string; status: "Planned" | "In Progress" | "Complete"; targetDate: string }[]
   >([]);
   const [publications, setPublications] = useState<
-    { id: string; title: string; url: string; summary: string }[]
+    { id: string; title: string; url: string; summary: string; createdAt: string }[]
   >([]);
   const [signers, setSigners] = useState<
     { id: string; address: string; role: string }[]
@@ -89,6 +96,9 @@ export default function AdminPage() {
   >([]);
   const [multisigThreshold, setMultisigThreshold] = useState(2);
   const [articles, setArticles] = useState<ResearchArticle[]>([]);
+  const [editingArticleId, setEditingArticleId] = useState<string | null>(null);
+  const [vaultRegistry, setVaultRegistry] = useState<VaultCatalogEntry[]>([]);
+  const [learnRegistry, setLearnRegistry] = useState<LearnEntry[]>([]);
 
   const adminAddress = process.env.NEXT_PUBLIC_GOVERNANCE_ADMIN?.toLowerCase();
   const isAdmin =
@@ -277,10 +287,33 @@ export default function AdminPage() {
           title: item.title,
           url: item.fileUrl ?? "",
           summary: item.summary ?? "",
+          createdAt: item.createdAt,
         }));
       setPublications(publicationsData);
     } catch {
       setPublications([]);
+    }
+  };
+
+  const loadVaultRegistry = async () => {
+    try {
+      const response = await fetch("/api/vaults");
+      const result = await response.json();
+      const data = Array.isArray(result?.data) ? result.data : [];
+      setVaultRegistry(data);
+    } catch {
+      setVaultRegistry([]);
+    }
+  };
+
+  const loadLearnRegistry = async () => {
+    try {
+      const response = await fetch("/api/learn");
+      const result = await response.json();
+      const data = Array.isArray(result?.data) ? result.data : [];
+      setLearnRegistry(data);
+    } catch {
+      setLearnRegistry([]);
     }
   };
 
@@ -290,6 +323,8 @@ export default function AdminPage() {
     loadBadgeRegistry();
     loadArticles();
     loadPublications();
+    loadVaultRegistry();
+    loadLearnRegistry();
     loadExpiredBadges();
   }, []);
 
@@ -400,6 +435,127 @@ export default function AdminPage() {
         err instanceof Error ? err.message : "Unable to remove publication."
       );
     }
+  };
+
+  const updatePublication = async (id: string, publication: {
+    title: string;
+    url: string;
+    summary: string;
+  }) => {
+    const title = publication.title.trim();
+    const url = publication.url.trim();
+    const summary =
+      publication.summary?.trim() || "Publication registry entry.";
+    const payload = {
+      title,
+      summary,
+      contentHtml: `<p><a href=\"${url}\" target=\"_blank\" rel=\"noreferrer\">Open publication</a></p>`,
+      tags: ["publication", "registry"],
+      coverUrl: null,
+      galleryUrls: [],
+      fileUrl: url,
+    };
+    const auth = await getAdminAuth();
+    const response = await fetch("/api/articles", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, payload, ...auth }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "Unable to update publication.");
+    }
+    await loadPublications();
+  };
+
+  const createVaultEntry = async (payload: VaultCatalogEntry) => {
+    const auth = await getAdminAuth();
+    const response = await fetch("/api/vaults", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload, ...auth }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "Unable to add vault.");
+    }
+    await loadVaultRegistry();
+  };
+
+  const updateVaultEntry = async (
+    id: string,
+    payload: Partial<VaultCatalogEntry>
+  ) => {
+    const auth = await getAdminAuth();
+    const response = await fetch("/api/vaults", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, payload, ...auth }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "Unable to update vault.");
+    }
+    await loadVaultRegistry();
+  };
+
+  const deleteVaultEntry = async (id: string) => {
+    const auth = await getAdminAuth();
+    const response = await fetch("/api/vaults", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...auth }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "Unable to delete vault.");
+    }
+    await loadVaultRegistry();
+  };
+
+  const createLearnEntry = async (payload: LearnEntry) => {
+    const auth = await getAdminAuth();
+    const response = await fetch("/api/learn", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ payload, ...auth }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "Unable to add learn entry.");
+    }
+    await loadLearnRegistry();
+  };
+
+  const updateLearnEntry = async (
+    id: string,
+    payload: Partial<LearnEntry>
+  ) => {
+    const auth = await getAdminAuth();
+    const response = await fetch("/api/learn", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, payload, ...auth }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "Unable to update learn entry.");
+    }
+    await loadLearnRegistry();
+  };
+
+  const deleteLearnEntry = async (id: string) => {
+    const auth = await getAdminAuth();
+    const response = await fetch("/api/learn", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, ...auth }),
+    });
+    if (!response.ok) {
+      const result = await response.json().catch(() => null);
+      throw new Error(result?.error ?? "Unable to delete learn entry.");
+    }
+    await loadLearnRegistry();
   };
 
   const addSigner = (signer: { address: string; role: string }) => {
@@ -829,6 +985,16 @@ export default function AdminPage() {
     reportWindow.print();
   };
 
+  const handleEditArticle = (id: string) => {
+    setEditingArticleId(id);
+    if (typeof document !== "undefined") {
+      const target = document.getElementById("article-editor");
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+    }
+  };
+
   useEffect(() => {
     if (!provider) return;
     const sync = async () => {
@@ -845,20 +1011,35 @@ export default function AdminPage() {
   }, [contractAddress, walletAddress, chainId]);
 
   return (
-    <div className="page-shell min-h-screen bg-[#f5f0e6] text-[#1c1914]">
-      <div className="page-transition relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-16">
-        <NavBar showAdmin={isAdmin} />
-
-        <div className="glass-panel animate-fade flex flex-col gap-4 p-6">
+    <SiteShell showAdmin={isAdmin}>
+      <div className="flex flex-col gap-8">
+        <header className="glass-panel animate-fade flex flex-col gap-4 p-6">
           <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
-            Admin Dashboard
+            Council Layer
           </p>
-          <h1 className="font-spectral text-3xl text-[#1c1914]">
-            Vault Administration
+          <h1 className="heading-serif text-3xl text-[#1c1914]">
+            Proposal Studio & Treasury Ops
           </h1>
           <p className="text-sm text-[#5e5242]">
-            Administrative controls for withdrawals and treasury oversight.
+            Administrative controls for fund allocation, compliance, and
+            institutional reporting.
           </p>
+          <div className="grid gap-3 text-xs text-[#5e5242] sm:grid-cols-2 lg:grid-cols-5">
+            {[
+              "Proposal Studio",
+              "Fund Allocation",
+              "Treasury Ops",
+              "Compliance & Risk",
+              "Analytics",
+            ].map((item) => (
+              <div
+                key={item}
+                className="rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-3 text-[11px] uppercase tracking-[0.2em] text-[#6b5b45]"
+              >
+                {item}
+              </div>
+            ))}
+          </div>
           {!walletAddress && (
             <button
               onClick={connectWallet}
@@ -872,7 +1053,7 @@ export default function AdminPage() {
               This page is restricted to the admin address.
             </div>
           )}
-        </div>
+        </header>
 
         {isAdmin && (
           <>
@@ -920,12 +1101,48 @@ export default function AdminPage() {
             </section>
 
             <section className="stagger grid gap-6">
+              <VaultRegistryPanel
+                vaults={vaultRegistry}
+                onCreate={createVaultEntry}
+                onUpdate={updateVaultEntry}
+                onDelete={deleteVaultEntry}
+              />
+            </section>
+
+            <section className="stagger grid gap-6">
+              <LearnRegistryPanel
+                entries={learnRegistry}
+                onCreate={createLearnEntry}
+                onUpdate={updateLearnEntry}
+                onDelete={deleteLearnEntry}
+              />
+            </section>
+
+            <section className="stagger grid gap-6">
+              <PublicationTrackingPanel
+                publications={publications}
+                onUpdate={updatePublication}
+                onDelete={removePublication}
+              />
+            </section>
+
+            <section className="stagger grid gap-6">
               <ResearchArticlesPanel
                 articles={articles}
                 onCreate={createArticle}
                 onUpdate={updateArticle}
                 onDelete={deleteArticle}
                 onUpload={uploadToCloudinary}
+                externalEditId={editingArticleId}
+                onExternalEditHandled={() => setEditingArticleId(null)}
+              />
+            </section>
+
+            <section className="stagger grid gap-6">
+              <ArticleTrackingPanel
+                articles={articles}
+                onEdit={handleEditArticle}
+                onDelete={deleteArticle}
               />
             </section>
 
@@ -969,11 +1186,23 @@ export default function AdminPage() {
                 canIssueBadges={isAdmin}
               />
             </section>
+
+            <section className="stagger grid gap-6">
+              <BadgeTrackingPanel
+                badges={badges}
+                expiredBadges={expiredBadges}
+                badgeRegistry={badgeRegistry}
+                onRemoveBadge={removeBadge}
+              />
+            </section>
+
+            <section className="stagger grid gap-6">
+              <BadgeAutomationPanel getAdminAuth={getAdminAuth} />
+            </section>
           </>
         )}
 
-        <Footer />
       </div>
-    </div>
+    </SiteShell>
   );
 }

@@ -3,8 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
+import SiteShell from "@/components/SiteShell";
 
 type MilestoneUnlock = {
   id: string;
@@ -88,16 +87,14 @@ export default function MilestoneDetailPage() {
   }, []);
 
   return (
-    <div className="page-shell min-h-screen bg-[#f5f0e6] text-[#1c1914]">
-      <div className="page-transition relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-16">
-        <NavBar showAdmin={isAdmin} />
-
-        <div className="flex flex-col gap-2">
+    <SiteShell showAdmin={isAdmin}>
+      <div className="flex flex-col gap-8">
+        <header className="glass-panel animate-fade flex flex-col gap-3 p-6">
           <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
             Milestone Detail
           </p>
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h1 className="font-spectral text-3xl text-[#1c1914]">
+            <h1 className="heading-serif text-3xl text-[#1c1914]">
               {milestone?.milestoneTitle
                 ? capitalizeFirst(milestone.milestoneTitle)
                 : "Milestone"}
@@ -114,7 +111,7 @@ export default function MilestoneDetailPage() {
               Loading milestone…
             </p>
           )}
-        </div>
+        </header>
 
         {!milestone ? (
           <div className="glass-panel animate-fade p-6 text-sm text-[#5e5242]">
@@ -223,8 +220,7 @@ export default function MilestoneDetailPage() {
           </section>
         )}
 
-        <Footer />
       </div>
-    </div>
+    </SiteShell>
   );
 }

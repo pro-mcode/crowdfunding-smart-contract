@@ -1,7 +1,7 @@
 "use client";
 
 import type { FormEvent } from "react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import RichTextEditor from "@/components/RichTextEditor";
 
 export type ResearchArticle = {
@@ -55,6 +55,8 @@ type ResearchArticlesPanelProps = {
   ) => Promise<void>;
   onDelete: (id: string) => Promise<void>;
   onUpload: (file: File, folder: string) => Promise<string>;
+  externalEditId?: string | null;
+  onExternalEditHandled?: () => void;
 };
 
 const emptyForm = {
@@ -73,6 +75,8 @@ export default function ResearchArticlesPanel({
   onUpdate,
   onDelete,
   onUpload,
+  externalEditId = null,
+  onExternalEditHandled,
 }: ResearchArticlesPanelProps) {
   const [formState, setFormState] = useState(emptyForm);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -146,6 +150,15 @@ export default function ResearchArticlesPanel({
     void loadHistory(article.id);
   };
 
+  useEffect(() => {
+    if (!externalEditId) return;
+    const article = articles.find((item) => item.id === externalEditId);
+    if (!article) return;
+    handleEdit(article);
+    onExternalEditHandled?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [articles, externalEditId, onExternalEditHandled]);
+
   const loadHistory = async (id: string) => {
     setHistoryStatus(null);
     try {
@@ -216,8 +229,22 @@ export default function ResearchArticlesPanel({
     }
   };
 
+  const recentArticles = useMemo(() => {
+    const sorted = [...articles].sort((a, b) => {
+      const aTime = new Date(a.createdAt).getTime();
+      const bTime = new Date(b.createdAt).getTime();
+      const safeA = Number.isNaN(aTime) ? 0 : aTime;
+      const safeB = Number.isNaN(bTime) ? 0 : bTime;
+      return safeB - safeA;
+    });
+    return sorted.slice(0, 3);
+  }, [articles]);
+
   return (
-    <div className="glass-panel animate-fade flex flex-col gap-6 p-6">
+    <div
+      id="article-editor"
+      className="glass-panel animate-fade flex flex-col gap-6 p-6"
+    >
       <div className="flex flex-col gap-2">
         <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
           Research Articles
@@ -429,53 +456,60 @@ export default function ResearchArticlesPanel({
           {articles.length === 0 ? (
             <p className="text-sm text-[#5e5242]">No articles published yet.</p>
           ) : (
-            articles.map((article) => (
-              <div
-                key={article.id}
-                className="flex flex-col gap-2 rounded-2xl border border-[#eadfcf] bg-white/70 p-4 text-sm text-[#5e5242]"
-              >
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
-                    {article.tags.map((tag) => (
-                      <span key={tag} className="chip">
-                        {tag}
-                      </span>
-                    ))}
+            <>
+              {articles.length > 3 && (
+                <p className="text-[11px] text-[#6b5b45]">
+                  Showing the latest 3 of {articles.length} articles.
+                </p>
+              )}
+              {recentArticles.map((article) => (
+                <div
+                  key={article.id}
+                  className="flex flex-col gap-2 rounded-2xl border border-[#eadfcf] bg-white/70 p-4 text-sm text-[#5e5242]"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                      {article.tags.map((tag) => (
+                        <span key={tag} className="chip">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-[11px] text-[#6b5b45]">
+                      {new Date(article.createdAt).toLocaleDateString()}
+                    </span>
                   </div>
-                  <span className="text-[11px] text-[#6b5b45]">
-                    {new Date(article.createdAt).toLocaleDateString()}
-                  </span>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-base font-semibold text-[#1c1914]">
+                      {article.title}
+                    </span>
+                    <span className="text-xs">{article.summary}</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-3 text-[11px]">
+                    <a
+                      href={`/research/${article.id}`}
+                      className="rounded-full border border-[#1c1914] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#1c1914] transition hover:bg-[#1c1914] hover:text-[#fff7ea]"
+                    >
+                      View
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => handleEdit(article)}
+                      className="rounded-full border border-[#1c1914] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#1c1914] transition hover:bg-[#1c1914] hover:text-[#fff7ea]"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onDelete(article.id)}
+                      className="rounded-full border border-[#9a2c20] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#9a2c20] transition hover:bg-[#9a2c20] hover:text-[#fff7ea]"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-base font-semibold text-[#1c1914]">
-                    {article.title}
-                  </span>
-                  <span className="text-xs">{article.summary}</span>
-                </div>
-                <div className="flex flex-wrap items-center gap-3 text-[11px]">
-                  <a
-                    href={`/research/${article.id}`}
-                    className="rounded-full border border-[#1c1914] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#1c1914] transition hover:bg-[#1c1914] hover:text-[#fff7ea]"
-                  >
-                    View
-                  </a>
-                  <button
-                    type="button"
-                    onClick={() => handleEdit(article)}
-                    className="rounded-full border border-[#1c1914] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#1c1914] transition hover:bg-[#1c1914] hover:text-[#fff7ea]"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(article.id)}
-                    className="rounded-full border border-[#9a2c20] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#9a2c20] transition hover:bg-[#9a2c20] hover:text-[#fff7ea]"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))
+              ))}
+            </>
           )}
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 
 type ExperimentEntry = {
   id: string;
@@ -90,60 +90,73 @@ export default function AdvancedPanel({
   const [registryWeight, setRegistryWeight] = useState("");
   const [registryRenewDays, setRegistryRenewDays] = useState("");
 
-  const selectedRegistry = useMemo(
-    () =>
-      badgeRegistry.find(
-        (entry) => entry.title.toLowerCase() === badgeTitle.toLowerCase()
-      ),
-    [badgeRegistry, badgeTitle]
-  );
+  const recentBadges = useMemo(() => {
+    const sorted = [...badges].sort((a, b) => {
+      const aTime = new Date(a.issuedAt).getTime();
+      const bTime = new Date(b.issuedAt).getTime();
+      const safeA = Number.isNaN(aTime) ? 0 : aTime;
+      const safeB = Number.isNaN(bTime) ? 0 : bTime;
+      return safeB - safeA;
+    });
+    return sorted.slice(0, 3);
+  }, [badges]);
 
-  useEffect(() => {
-    if (!badgeTitle) {
-      setBadgeTokenId("");
-      return;
-    }
+  const computeNextTokenId = (title: string) => {
+    if (!title.trim()) return "";
+    const registryEntry = badgeRegistry.find(
+      (entry) => entry.title.toLowerCase() === title.toLowerCase()
+    );
     const code =
-      selectedRegistry?.code?.trim() ||
-      badgeTitle
+      registryEntry?.code?.trim() ||
+      title
         .replace(/[^a-zA-Z0-9]/g, "")
         .slice(0, 4)
         .toUpperCase();
     const count = badges.filter(
-      (badge) => badge.badge.toLowerCase() === badgeTitle.toLowerCase()
+      (badge) => badge.badge.toLowerCase() === title.toLowerCase()
     ).length;
     const next = String(count + 1).padStart(3, "0");
-    setBadgeTokenId(`${code}-${next}`);
-  }, [badgeRegistry, badgeTitle, badges, selectedRegistry]);
+    return `${code}-${next}`;
+  };
 
-  useEffect(() => {
-    if (expiryPreset === "custom") return;
-    if (expiryPreset === "never") {
+  const handleExpiryPresetChange = (value: string) => {
+    setExpiryPreset(value);
+    if (value === "custom") return;
+    if (value === "never") {
       setBadgeExpiresAt("");
       return;
     }
-    const days = Number(expiryPreset);
+    const days = Number(value);
     if (!Number.isFinite(days)) return;
     const future = new Date();
     future.setDate(future.getDate() + days);
     setBadgeExpiresAt(future.toISOString().slice(0, 10));
-  }, [expiryPreset]);
+  };
 
-  useEffect(() => {
-    if (!selectedRegistry?.renewDays) return;
-    if (badgeExpiresAt || expiryPreset !== "never") return;
-    const days = Number(selectedRegistry.renewDays);
-    if (!Number.isFinite(days) || days <= 0) return;
+  const handleBadgeTitleChange = (value: string) => {
+    setBadgeTitle(value);
+    setBadgeTokenId(value ? computeNextTokenId(value) : "");
+    setExpiryPreset("never");
+    setBadgeExpiresAt("");
+
+    if (!value.trim()) return;
+    const registryEntry = badgeRegistry.find(
+      (entry) => entry.title.toLowerCase() === value.toLowerCase()
+    );
+    const renewDays = Number(registryEntry?.renewDays ?? 0);
+    if (!Number.isFinite(renewDays) || renewDays <= 0) return;
+
+    const future = new Date();
+    future.setDate(future.getDate() + renewDays);
     const presetOptions = new Set(["7", "30", "90", "180", "365"]);
-    if (presetOptions.has(String(days))) {
-      setExpiryPreset(String(days));
+    if (presetOptions.has(String(renewDays))) {
+      setExpiryPreset(String(renewDays));
+      setBadgeExpiresAt(future.toISOString().slice(0, 10));
       return;
     }
-    const future = new Date();
-    future.setDate(future.getDate() + days);
     setExpiryPreset("custom");
     setBadgeExpiresAt(future.toISOString().slice(0, 10));
-  }, [selectedRegistry, badgeExpiresAt, expiryPreset]);
+  };
   return (
     <div className="glass-panel animate-fade flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
@@ -156,8 +169,8 @@ export default function AdvancedPanel({
         </p>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="grid gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
+      <div className="grid gap-6 lg:grid-cols-2 items-start">
+        <div className="col-span-full grid gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
           <p className="uppercase tracking-[0.35em]">Experiment Ledger</p>
           <form
             className="grid gap-2"
@@ -231,7 +244,7 @@ export default function AdvancedPanel({
           </div>
         </div>
 
-        <div className="grid gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
+        <div className="grid h-fit gap-4 rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-4 text-xs text-[#6b5b45]">
           <p className="uppercase tracking-[0.35em]">Badge Registry</p>
           {canIssueBadges ? (
             <form
@@ -335,7 +348,7 @@ export default function AdvancedPanel({
           </div>
         </div>
 
-        <div className="grid gap-4 rounded-2xl border border-[#eadfcf] bg-[#fff7ea] p-4 text-xs text-[#6b5b45]">
+        <div className="grid h-fit gap-4 rounded-2xl border border-[#eadfcf] bg-[#fff7ea] p-4 text-xs text-[#6b5b45]">
           <p className="uppercase tracking-[0.35em]">Reputation Badges</p>
           {canIssueBadges ? (
             <form
@@ -365,11 +378,7 @@ export default function AdvancedPanel({
               {badgeRegistry.length > 0 ? (
                 <select
                   value={badgeTitle}
-                  onChange={(event) => {
-                    setBadgeTitle(event.target.value);
-                    setExpiryPreset("never");
-                    setBadgeExpiresAt("");
-                  }}
+                  onChange={(event) => handleBadgeTitleChange(event.target.value)}
                   className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
                 >
                   <option value="">Select badge type</option>
@@ -382,11 +391,7 @@ export default function AdvancedPanel({
               ) : (
                 <input
                   value={badgeTitle}
-                  onChange={(event) => {
-                    setBadgeTitle(event.target.value);
-                    setExpiryPreset("never");
-                    setBadgeExpiresAt("");
-                  }}
+                  onChange={(event) => handleBadgeTitleChange(event.target.value)}
                   placeholder="Badge type (e.g., Core Researcher)"
                   className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
                 />
@@ -409,7 +414,7 @@ export default function AdvancedPanel({
                 />
                 <select
                   value={expiryPreset}
-                  onChange={(event) => setExpiryPreset(event.target.value)}
+                  onChange={(event) => handleExpiryPresetChange(event.target.value)}
                   className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
                 >
                   <option value="never">No expiration</option>
@@ -431,12 +436,17 @@ export default function AdvancedPanel({
             </p>
           )}
           <div className="grid gap-2">
+            {badges.length > 3 && (
+              <p className="text-[10px] text-[#6b5b45]">
+                Showing the latest 3 of {badges.length} active badges.
+              </p>
+            )}
             {badges.length === 0 ? (
               <p className="text-[11px] text-[#5e5242]">
                 No active badges issued yet.
               </p>
             ) : (
-              badges.map((badge) => (
+              recentBadges.map((badge) => (
                 <div
                   key={badge.id}
                   className="grid gap-1 rounded-xl border border-[#eadfcf] bg-white/70 p-3 text-[11px] text-[#5e5242]"

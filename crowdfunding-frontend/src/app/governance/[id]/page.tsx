@@ -3,9 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
 import { makeHandle } from "@/lib/handle";
+import SiteShell from "@/components/SiteShell";
 
 type Proposal = {
   id: string;
@@ -157,6 +156,8 @@ export default function ProposalDetailPage() {
     Boolean(normalizedIdentity) &&
     (normalizedIdentity === proposerHandle ||
       (adminAddress && normalizedIdentity === adminAddress));
+  const showCouncil =
+    Boolean(normalizedIdentity) && normalizedIdentity === adminAddress;
 
   const matchedBadges = useMemo(() => {
     if (!walletAddress) return [];
@@ -413,22 +414,14 @@ export default function ProposalDetailPage() {
   };
 
   return (
-    <div className="page-shell min-h-screen bg-[#f5f0e6] text-[#1c1914]">
-      <div className="page-transition relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-16">
-        <NavBar
-          showAdmin={
-            Boolean(normalizedIdentity) &&
-            normalizedIdentity ===
-              process.env.NEXT_PUBLIC_GOVERNANCE_ADMIN?.toLowerCase()
-          }
-        />
-
-        <div className="flex flex-col gap-2">
+    <SiteShell showAdmin={showCouncil}>
+      <div className="flex flex-col gap-8">
+        <header className="glass-panel animate-fade flex flex-col gap-3 p-6">
           <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
             Proposal Detail
           </p>
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h1 className="font-spectral text-3xl text-[#1c1914]">
+            <h1 className="heading-serif text-3xl text-[#1c1914]">
               {proposal?.title ? capitalizeFirst(proposal.title) : "Proposal"}
             </h1>
             <div className="flex flex-wrap gap-2">
@@ -452,7 +445,7 @@ export default function ProposalDetailPage() {
               Loading proposal…
             </p>
           )}
-        </div>
+        </header>
 
         {!proposal ? (
           <div className="glass-panel animate-fade p-6 text-sm text-[#5e5242]">
@@ -748,8 +741,7 @@ export default function ProposalDetailPage() {
           </section>
         )}
 
-        <Footer />
       </div>
-    </div>
+    </SiteShell>
   );
 }

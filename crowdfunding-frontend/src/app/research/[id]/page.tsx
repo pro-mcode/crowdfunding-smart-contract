@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
 import Image from "next/image";
+import SiteShell from "@/components/SiteShell";
 
 type Article = {
   id: string;
@@ -64,16 +63,14 @@ export default function ResearchDetailPage() {
   }, [articleId]);
 
   return (
-    <div className="page-shell min-h-screen bg-[#f5f0e6] text-[#1c1914]">
-      <div className="page-transition relative mx-auto flex min-h-screen w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-16">
-        <NavBar />
-
-        <div className="flex flex-col gap-2">
+    <SiteShell>
+      <div className="flex flex-col gap-8">
+        <header className="glass-panel animate-fade flex flex-col gap-3 p-6">
           <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
             Research Article
           </p>
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <h1 className="font-spectral text-3xl text-[#1c1914]">
+            <h1 className="heading-serif text-3xl text-[#1c1914]">
               {article?.title ?? "Research Article"}
             </h1>
             <Link
@@ -88,7 +85,7 @@ export default function ResearchDetailPage() {
               Loading article…
             </p>
           )}
-        </div>
+        </header>
 
         {!article ? (
           <div className="glass-panel animate-fade p-6 text-sm text-[#5e5242]">
@@ -123,7 +120,7 @@ export default function ResearchDetailPage() {
                 (!article.tags.includes("publication") ||
                   !article.contentHtml?.includes(article.summary)) && (
                   <>
-                    <h3 className="text-black text-2xl font-bold mt-2">
+                    <h3 className="mt-2 text-2xl font-bold text-[#1c1914]">
                       Abstract
                     </h3>
                     <p className="text-base text-[#1c1914]">
@@ -133,7 +130,7 @@ export default function ResearchDetailPage() {
                 )}
               {article.galleryUrls.length > 0 && (
                 <div className="grid gap-3">
-                  <p className="text-xs uppercase tracking-[0.3em] text-[#6b5b45] mt-2">
+                  <p className="mt-2 text-xs uppercase tracking-[0.3em] text-[#6b5b45]">
                     Image Gallery
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -177,9 +174,7 @@ export default function ResearchDetailPage() {
             </div>
           </section>
         )}
-
-        <Footer />
       </div>
-    </div>
+    </SiteShell>
   );
 }

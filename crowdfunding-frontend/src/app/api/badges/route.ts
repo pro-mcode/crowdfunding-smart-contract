@@ -9,8 +9,25 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
-  const data = listBadges();
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const address = String(url.searchParams.get("address") ?? "").toLowerCase();
+  const status = String(url.searchParams.get("status") ?? "").toLowerCase();
+  let data = listBadges();
+  if (address) {
+    data = data.filter(
+      (badge) => badge.recipient.toLowerCase() === address
+    );
+  }
+  if (status === "active") {
+    const now = Date.now();
+    data = data.filter((badge) => {
+      if (!badge.expiresAt) return true;
+      const parsed = Date.parse(badge.expiresAt);
+      if (Number.isNaN(parsed)) return true;
+      return parsed > now;
+    });
+  }
   return NextResponse.json({ ok: true, data });
 }
 
