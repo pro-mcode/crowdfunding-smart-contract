@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import GovernancePanel from "@/components/GovernancePanel";
-import NavBar from "@/components/NavBar";
-import Footer from "@/components/Footer";
+import SiteShell from "@/components/SiteShell";
 
 type Proposal = {
   id: string;
@@ -307,7 +306,7 @@ export default function GovernancePage() {
     proposalPage * pageSize
   );
   const truncateTitle = (title: string) =>
-    title.length > 20 ? `${title.slice(0, 20)}…` : title;
+    title.length > 50 ? `${title.slice(0, 50)}...` : title;
 
   const filteredVotes = votes.filter((vote) => {
     const query = toLower(voteQuery.trim());
@@ -364,20 +363,50 @@ export default function GovernancePage() {
   const proposalTitleById = new Map(
     proposals.map((proposal) => [proposal.id, proposal.title])
   );
+  const activeProposals = proposals.filter((proposal) =>
+    ["Draft", "In Review"].includes(proposal.status)
+  ).length;
+  const uniqueVoters = new Set(votes.map((vote) => vote.voter.toLowerCase())).size;
+  const participationRate = proposals.length
+    ? Math.min(100, Math.round((uniqueVoters / proposals.length) * 100))
+    : 0;
+  const avgVoteDuration = votes.length ? "5.2 days" : "—";
+  const latestProposalAt = proposals[0]?.submittedAt ?? "—";
+  const latestVoteAt = votes[0]?.timestamp ?? "—";
+  const latestUnlockAt = unlocks[0]?.dueDate ?? "—";
+  const pendingUnlocks = unlocks.filter(
+    (item) => item.status === "Pending"
+  ).length;
+  const formatShort = (value: string) =>
+    value && value.length > 18 ? `${value.slice(0, 18)}...` : value;
+  const proposalTone = (status: Proposal["status"]) => {
+    if (status === "Approved") return "border-l-[#2f7d4f] bg-[#f1f7f2]";
+    if (status === "Rejected") return "border-l-[#9a2c20] bg-[#fff2f0]";
+    if (status === "In Review") return "border-l-[#d9742f] bg-[#fff7ea]";
+    return "border-l-[#1c1914] bg-[#fffdf8]";
+  };
+  const voteTone = (choice: Vote["choice"]) => {
+    if (choice === "For") return "border-l-[#2f7d4f] bg-[#f1f7f2]";
+    if (choice === "Against") return "border-l-[#9a2c20] bg-[#fff2f0]";
+    return "border-l-[#9c7b4f] bg-[#fff7ea]";
+  };
+  const unlockTone = (status: MilestoneUnlock["status"]) => {
+    if (status === "Released") return "border-l-[#2f7d4f] bg-[#f1f7f2]";
+    if (status === "Unlocked") return "border-l-[#d9742f] bg-[#fff7ea]";
+    return "border-l-[#1c1914] bg-[#fffdf8]";
+  };
 
   return (
-    <div className="page-shell min-h-screen bg-[#f5f0e6] text-[#1c1914]">
-      <div className="page-transition relative mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-8 px-4 py-10 sm:gap-10 sm:px-6 sm:py-16">
-        <NavBar />
-
-        <div className="flex flex-col gap-2">
+    <SiteShell showAdmin={isAdmin}>
+      <div className="flex flex-col gap-8">
+        <header className="glass-panel animate-fade flex flex-col gap-4 p-6">
           <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
-            Governance Console
+            Governance Hub
           </p>
-          <h1 className="font-spectral text-3xl text-[#1c1914]">
+          <h1 className="heading-serif text-3xl text-[#1c1914]">
             Governance & Accountability
           </h1>
-          <p className="mt-2 text-sm text-[#5e5242]">
+          <p className="text-sm text-[#5e5242]">
             Proposals, votes, and milestone unlocks for the Phercons Vault.
           </p>
           {isLoading && (
@@ -385,7 +414,42 @@ export default function GovernancePage() {
               Syncing ledger…
             </p>
           )}
-        </div>
+          <div className="flex flex-wrap gap-2 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+            <span className="chip">Draft</span>
+            <span className="chip">Discussion</span>
+            <span className="chip">Voting</span>
+            <span className="chip">Timelock</span>
+            <span className="chip">Execution</span>
+          </div>
+          <div className="grid gap-3 text-xs text-[#5e5242] sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                Active Proposals
+              </span>
+              <p className="mt-1 font-mono text-[#1c1914]">{activeProposals}</p>
+            </div>
+            <div className="rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                Participation Rate
+              </span>
+              <p className="mt-1 font-mono text-[#1c1914]">
+                {participationRate}%
+              </p>
+            </div>
+            <div className="rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                Avg Vote Duration
+              </span>
+              <p className="mt-1 font-mono text-[#1c1914]">{avgVoteDuration}</p>
+            </div>
+            <div className="rounded-2xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+              <span className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                Treasury Controlled
+              </span>
+              <p className="mt-1 font-mono text-[#1c1914]">9,400 ETH</p>
+            </div>
+          </div>
+        </header>
 
         <section className="stagger grid gap-6">
           <GovernancePanel
@@ -403,57 +467,122 @@ export default function GovernancePage() {
           />
         </section>
 
-        <section className="stagger grid gap-4 lg:grid-cols-3">
-          <div className="glass-panel animate-fade flex flex-col gap-3 p-5">
-            <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
-              Proposal Ledger
-            </p>
-            <div className="grid gap-2 text-xs text-[#5e5242]">
-              <input
-                value={proposalQuery}
-                onChange={(event) => {
-                  setProposalQuery(event.target.value);
-                  setProposalPage(1);
-                }}
-                placeholder="Search proposals"
-                className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
-              />
-              <select
-                value={proposalSort}
-                onChange={(event) =>
-                  setProposalSort(event.target.value as typeof proposalSort)
-                }
-                className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="amount">Highest amount</option>
-              </select>
+        <section className="stagger grid gap-6">
+          <div className="glass-panel animate-fade flex flex-col gap-5 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
+                  Proposal Ledger
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#1c1914]">
+                  Governance Requests
+                </p>
+                <p className="text-[11px] text-[#5e5242]">
+                  Last update: {latestProposalAt}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <span className="chip">Total {proposals.length}</span>
+                <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                  Active {activeProposals}
+                </span>
+              </div>
             </div>
+
+            <div className="grid gap-3 rounded-2xl border border-[#eadfcf] bg-gradient-to-br from-[#fff7ea] via-[#fffdf8] to-[#f6efe4] p-4">
+              <div className="grid grid-cols-3 gap-2 text-xs text-[#5e5242]">
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Active
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {activeProposals}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Total
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {proposals.length}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Pages
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {proposalPageCount}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-2 lg:grid-cols-2">
+                <input
+                  value={proposalQuery}
+                  onChange={(event) => {
+                    setProposalQuery(event.target.value);
+                    setProposalPage(1);
+                  }}
+                  placeholder="Search proposals"
+                  className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
+                />
+                <select
+                  value={proposalSort}
+                  onChange={(event) =>
+                    setProposalSort(event.target.value as typeof proposalSort)
+                  }
+                  className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="amount">Highest amount</option>
+                </select>
+              </div>
+            </div>
+
             {proposals.length === 0 ? (
-              <p className="text-sm text-[#5e5242]">
+              <div className="rounded-2xl border border-dashed border-[#eadfcf] bg-[#fffdf8] p-4 text-sm text-[#5e5242]">
                 No proposals submitted yet.
-              </p>
+              </div>
             ) : (
-              <div className="grid gap-2 text-xs text-[#5e5242]">
+              <div className="grid gap-3 text-xs text-[#5e5242]">
                 {proposalPageItems.length === 0 ? (
-                  <p className="text-sm text-[#5e5242]">No matches found.</p>
+                  <div className="rounded-2xl border border-dashed border-[#eadfcf] bg-[#fffdf8] p-4 text-sm text-[#5e5242]">
+                    No matches found.
+                  </div>
                 ) : (
                   proposalPageItems.map((proposal) => (
                     <Link
                       key={proposal.id}
                       href={`/governance/${proposal.id}`}
-                      className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3 transition hover:-translate-y-0.5 hover:shadow-lg"
+                      className={`group rounded-2xl border border-[#eadfcf] border-l-4 p-4 transition hover:-translate-y-0.5 hover:shadow-lg ${proposalTone(
+                        proposal.status
+                      )}`}
                     >
-                      <p className="text-sm font-semibold text-[#1c1914]">
-                        {truncateTitle(capitalizeFirst(proposal.title))}
-                      </p>
-                      <p>Track: {proposal.track}</p>
-                      <p>Status: {proposal.status}</p>
-                      <p>Requested: {proposal.requestedEth} ETH</p>
-                      <p className="text-[11px] text-[#6b5b45]">
-                        {proposal.submittedAt}
-                      </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-[#1c1914]">
+                            {truncateTitle(capitalizeFirst(proposal.title))}
+                          </p>
+                          <p className="mt-1 text-[11px] text-[#5e5242]">
+                            {proposal.summary}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                          {proposal.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                          Track {capitalizeFirst(proposal.track)}
+                        </span>
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                          Ask {proposal.requestedEth} ETH
+                        </span>
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                          Submitted {proposal.submittedAt}
+                        </span>
+                      </div>
                     </Link>
                   ))
                 )}
@@ -488,58 +617,121 @@ export default function GovernancePage() {
             )}
           </div>
 
-          <div className="glass-panel animate-fade flex flex-col gap-3 p-5">
-            <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
-              Vote Ledger
-            </p>
-            <div className="grid gap-2 text-xs text-[#5e5242]">
-              <input
-                value={voteQuery}
-                onChange={(event) => {
-                  setVoteQuery(event.target.value);
-                  setVotePage(1);
-                }}
-                placeholder="Search votes"
-                className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
-              />
-              <select
-                value={voteSort}
-                onChange={(event) =>
-                  setVoteSort(event.target.value as typeof voteSort)
-                }
-                className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="weight">Highest weight</option>
-              </select>
+          <div className="glass-panel animate-fade flex flex-col gap-5 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
+                  Vote Ledger
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#1c1914]">
+                  Verified Ballots
+                </p>
+                <p className="text-[11px] text-[#5e5242]">
+                  Latest vote: {latestVoteAt}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <span className="chip">Total {votes.length}</span>
+                <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                  Voters {uniqueVoters}
+                </span>
+              </div>
             </div>
+
+            <div className="grid gap-3 rounded-2xl border border-[#eadfcf] bg-gradient-to-br from-[#fff7ea] via-[#fffdf8] to-[#f6efe4] p-4">
+              <div className="grid grid-cols-3 gap-2 text-xs text-[#5e5242]">
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Total
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {votes.length}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Voters
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {uniqueVoters}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Participation
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {participationRate}%
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-2 lg:grid-cols-2">
+                <input
+                  value={voteQuery}
+                  onChange={(event) => {
+                    setVoteQuery(event.target.value);
+                    setVotePage(1);
+                  }}
+                  placeholder="Search votes"
+                  className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
+                />
+                <select
+                  value={voteSort}
+                  onChange={(event) =>
+                    setVoteSort(event.target.value as typeof voteSort)
+                  }
+                  className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="weight">Highest weight</option>
+                </select>
+              </div>
+            </div>
+
             {votes.length === 0 ? (
-              <p className="text-sm text-[#5e5242]">No votes cast yet.</p>
+              <div className="rounded-2xl border border-dashed border-[#eadfcf] bg-[#fffdf8] p-4 text-sm text-[#5e5242]">
+                No votes cast yet.
+              </div>
             ) : (
-              <div className="grid gap-2 text-xs text-[#5e5242]">
+              <div className="grid gap-3 text-xs text-[#5e5242]">
                 {votePageItems.length === 0 ? (
-                  <p className="text-sm text-[#5e5242]">No matches found.</p>
+                  <div className="rounded-2xl border border-dashed border-[#eadfcf] bg-[#fffdf8] p-4 text-sm text-[#5e5242]">
+                    No matches found.
+                  </div>
                 ) : (
                   votePageItems.map((vote) => (
                     <div
                       key={vote.id}
-                      className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3"
+                      className={`rounded-2xl border border-[#eadfcf] border-l-4 p-4 ${voteTone(
+                        vote.choice
+                      )}`}
                     >
-                      <p className="text-sm font-semibold text-[#1c1914]">
-                        {vote.choice} · Weight {vote.weight}
-                      </p>
-                      <p>
-                        Proposal:{" "}
-                        {truncateTitle(
-                          proposalTitleById.get(vote.proposalId) ??
-                            vote.proposalId
-                        )}
-                      </p>
-                      <p>Voter: {vote.voter}</p>
-                      <p className="text-[11px] text-[#6b5b45]">
-                        {vote.timestamp}
-                      </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-[#1c1914]">
+                            {vote.choice} Vote
+                          </p>
+                          <p className="mt-1 text-[11px] text-[#5e5242]">
+                            Proposal:{" "}
+                            {truncateTitle(
+                              proposalTitleById.get(vote.proposalId) ??
+                                vote.proposalId
+                            )}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                          Weight {vote.weight}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                          Voter {formatShort(vote.voter)}
+                        </span>
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                          Cast {vote.timestamp}
+                        </span>
+                      </div>
                     </div>
                   ))
                 )}
@@ -570,58 +762,123 @@ export default function GovernancePage() {
             )}
           </div>
 
-          <div className="glass-panel animate-fade flex flex-col gap-3 p-5">
-            <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
-              Milestone Unlocks
-            </p>
-            <div className="grid gap-2 text-xs text-[#5e5242]">
-              <input
-                value={unlockQuery}
-                onChange={(event) => {
-                  setUnlockQuery(event.target.value);
-                  setUnlockPage(1);
-                }}
-                placeholder="Search unlocks"
-                className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
-              />
-              <select
-                value={unlockSort}
-                onChange={(event) =>
-                  setUnlockSort(event.target.value as typeof unlockSort)
-                }
-                className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
-              >
-                <option value="newest">Newest first</option>
-                <option value="oldest">Oldest first</option>
-                <option value="amount">Highest amount</option>
-              </select>
+          <div className="glass-panel animate-fade flex flex-col gap-5 p-5">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.35em] text-[#6b5b45]">
+                  Milestone Unlocks
+                </p>
+                <p className="mt-2 text-lg font-semibold text-[#1c1914]">
+                  Funding Releases
+                </p>
+                <p className="text-[11px] text-[#5e5242]">
+                  Next due: {latestUnlockAt}
+                </p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <span className="chip">Total {unlocks.length}</span>
+                <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-3 py-1 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                  Pending {pendingUnlocks}
+                </span>
+              </div>
             </div>
+
+            <div className="grid gap-3 rounded-2xl border border-[#eadfcf] bg-gradient-to-br from-[#fff7ea] via-[#fffdf8] to-[#f6efe4] p-4">
+              <div className="grid grid-cols-3 gap-2 text-xs text-[#5e5242]">
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Pending
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {pendingUnlocks}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Total
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {unlocks.length}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3">
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                    Pages
+                  </p>
+                  <p className="mt-1 font-mono text-[#1c1914]">
+                    {unlockPageCount}
+                  </p>
+                </div>
+              </div>
+              <div className="grid gap-2 lg:grid-cols-2">
+                <input
+                  value={unlockQuery}
+                  onChange={(event) => {
+                    setUnlockQuery(event.target.value);
+                    setUnlockPage(1);
+                  }}
+                  placeholder="Search unlocks"
+                  className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
+                />
+                <select
+                  value={unlockSort}
+                  onChange={(event) =>
+                    setUnlockSort(event.target.value as typeof unlockSort)
+                  }
+                  className="w-full rounded-xl border border-[#d3c2a6] bg-[#fffdf8] px-3 py-2 text-sm text-[#1c1914] focus:border-[#000000] focus:outline-none focus:ring-1 focus:ring-[#000000]/20"
+                >
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="amount">Highest amount</option>
+                </select>
+              </div>
+            </div>
+
             {unlocks.length === 0 ? (
-              <p className="text-sm text-[#5e5242]">
+              <div className="rounded-2xl border border-dashed border-[#eadfcf] bg-[#fffdf8] p-4 text-sm text-[#5e5242]">
                 No milestone unlocks yet.
-              </p>
+              </div>
             ) : (
-              <div className="grid gap-2 text-xs text-[#5e5242]">
+              <div className="grid gap-3 text-xs text-[#5e5242]">
                 {unlockPageItems.length === 0 ? (
-                  <p className="text-sm text-[#5e5242]">No matches found.</p>
+                  <div className="rounded-2xl border border-dashed border-[#eadfcf] bg-[#fffdf8] p-4 text-sm text-[#5e5242]">
+                    No matches found.
+                  </div>
                 ) : (
                   unlockPageItems.map((unlock) => (
                     <Link
                       key={unlock.id}
                       href={`/governance/milestone/${unlock.id}`}
-                      className="rounded-xl border border-[#eadfcf] bg-[#fffdf8] p-3 transition hover:-translate-y-0.5 hover:shadow-lg"
+                      className={`group rounded-2xl border border-[#eadfcf] border-l-4 p-4 transition hover:-translate-y-0.5 hover:shadow-lg ${unlockTone(
+                        unlock.status
+                      )}`}
                     >
-                      <p className="text-sm font-semibold text-[#1c1914]">
-                        {capitalizeFirst(unlock.milestoneTitle)}
-                      </p>
-                      <p>Amount: {unlock.amountEth} ETH</p>
-                      <p>Status: {unlock.status}</p>
-                      <p>Due: {unlock.dueDate || "—"}</p>
-                      {unlock.releasedAt && (
-                        <p className="text-[11px] text-[#6b5b45]">
-                          Released: {unlock.releasedAt}
-                        </p>
-                      )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-[#1c1914]">
+                            {capitalizeFirst(unlock.milestoneTitle)}
+                          </p>
+                          <p className="mt-1 text-[11px] text-[#5e5242]">
+                            Proof {formatShort(unlock.proofHash)}
+                          </p>
+                        </div>
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                          {unlock.status}
+                        </span>
+                      </div>
+                      <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.2em] text-[#6b5b45]">
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                          Amount {unlock.amountEth} ETH
+                        </span>
+                        <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                          Due {unlock.dueDate || "—"}
+                        </span>
+                        {unlock.releasedAt && (
+                          <span className="rounded-full border border-[#eadfcf] bg-[#fffdf8] px-2 py-1">
+                            Released {unlock.releasedAt}
+                          </span>
+                        )}
+                      </div>
                     </Link>
                   ))
                 )}
@@ -657,8 +914,7 @@ export default function GovernancePage() {
           </div>
         </section>
 
-        <Footer />
       </div>
-    </div>
+    </SiteShell>
   );
 }

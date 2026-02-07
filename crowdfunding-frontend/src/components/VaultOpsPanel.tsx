@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 type BudgetBucket = {
   id: string;
   label: string;
@@ -16,6 +18,7 @@ type Publication = {
   title: string;
   url: string;
   summary: string;
+  createdAt?: string;
 };
 
 type VaultOpsPanelProps = {
@@ -47,6 +50,16 @@ export default function VaultOpsPanel({
   const completedMilestones = milestones.filter(
     (milestone) => milestone.status === "Complete"
   ).length;
+  const recentPublications = useMemo(() => {
+    const sorted = [...publications].sort((a, b) => {
+      const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      const safeA = Number.isNaN(aTime) ? 0 : aTime;
+      const safeB = Number.isNaN(bTime) ? 0 : bTime;
+      return safeB - safeA;
+    });
+    return sorted.slice(0, 3);
+  }, [publications]);
 
   return (
     <div className="glass-panel animate-fade flex flex-col gap-6 p-6">
@@ -262,12 +275,17 @@ export default function VaultOpsPanel({
             </p>
           )}
           <div className="grid gap-2">
+            {publications.length > 3 && (
+              <p className="text-[11px] text-[#6b5b45]">
+                Showing the latest 3 of {publications.length} publications.
+              </p>
+            )}
             {publications.length === 0 ? (
               <p className="text-[11px] text-[#5e5242]">
                 No publications linked yet.
               </p>
             ) : (
-              publications.map((pub) => (
+              recentPublications.map((pub) => (
                 <div
                   key={pub.id}
                   className="flex flex-col gap-1 rounded-xl border border-[#eadfcf] bg-white/70 p-3 text-[11px] text-[#5e5242]"

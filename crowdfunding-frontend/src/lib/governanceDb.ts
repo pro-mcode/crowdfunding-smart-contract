@@ -64,7 +64,8 @@ const init = () => {
       badge TEXT NOT NULL,
       tokenId TEXT NOT NULL,
       issuedAt TEXT NOT NULL,
-      expiresAt TEXT
+      expiresAt TEXT,
+      meta TEXT
     );
     CREATE TABLE IF NOT EXISTS badge_archive (
       id TEXT PRIMARY KEY,
@@ -107,6 +108,81 @@ const init = () => {
       fileUrl TEXT,
       versionedAt TEXT NOT NULL
     );
+    CREATE TABLE IF NOT EXISTS vault_registry (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      focus TEXT NOT NULL,
+      tvl TEXT NOT NULL,
+      activeProposals INTEGER NOT NULL,
+      riskRating TEXT NOT NULL,
+      participation TEXT NOT NULL,
+      horizon TEXT NOT NULL,
+      overview TEXT NOT NULL,
+      thesis TEXT NOT NULL,
+      expectedOutcomes TEXT NOT NULL,
+      fundingStructure TEXT NOT NULL,
+      withdrawalConditions TEXT NOT NULL,
+      governanceModel TEXT NOT NULL,
+      deliverables TEXT NOT NULL,
+      reports TEXT NOT NULL,
+      datasets TEXT NOT NULL,
+      ipRights TEXT NOT NULL,
+      activity TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS learn_registry (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      updatedAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS identity_links (
+      id TEXT PRIMARY KEY,
+      walletAddress TEXT NOT NULL,
+      githubHandle TEXT NOT NULL,
+      gistUrl TEXT NOT NULL,
+      signature TEXT NOT NULL,
+      message TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      verifiedAt TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS contributions (
+      id TEXT PRIMARY KEY,
+      walletAddress TEXT NOT NULL,
+      source TEXT NOT NULL,
+      type TEXT NOT NULL,
+      quantity REAL,
+      points REAL NOT NULL,
+      evidence TEXT,
+      occurredAt TEXT NOT NULL,
+      createdAt TEXT NOT NULL,
+      metadata TEXT,
+      status TEXT NOT NULL,
+      verifiedAt TEXT
+    );
+    CREATE TABLE IF NOT EXISTS badge_snapshots (
+      id TEXT PRIMARY KEY,
+      period TEXT NOT NULL,
+      periodStart TEXT NOT NULL,
+      periodEnd TEXT NOT NULL,
+      rubricVersion TEXT NOT NULL,
+      thresholds TEXT,
+      generatedAt TEXT NOT NULL,
+      snapshotHash TEXT NOT NULL,
+      totalContributors INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS badge_awards (
+      id TEXT PRIMARY KEY,
+      snapshotId TEXT NOT NULL,
+      walletAddress TEXT NOT NULL,
+      badgeTitle TEXT NOT NULL,
+      points REAL NOT NULL,
+      issued INTEGER NOT NULL,
+      issuedAt TEXT,
+      badgeId TEXT
+    );
   `);
 
   ensureColumn("proposals", "proposer", "TEXT");
@@ -114,8 +190,11 @@ const init = () => {
   ensureColumn("proposals", "proposerHandle", "TEXT");
   ensureColumn("unlocks", "proposalId", "TEXT");
   ensureColumn("badges", "expiresAt", "TEXT");
+  ensureColumn("badges", "meta", "TEXT");
   ensureColumn("articles", "galleryUrls", "TEXT");
   ensureColumn("badge_registry", "renewDays", "INTEGER");
+  ensureColumn("contributions", "status", "TEXT");
+  ensureColumn("contributions", "verifiedAt", "TEXT");
 };
 
 init();
@@ -173,6 +252,7 @@ export type BadgeRow = {
   tokenId: string;
   issuedAt: string;
   expiresAt: string | null;
+  meta?: string | null;
 };
 
 export type BadgeArchiveRow = {
@@ -224,10 +304,11 @@ export const listBadgeArchive = () => {
 };
 
 export const createBadge = (badge: BadgeRow) => {
+  const payload = { ...badge, meta: badge.meta ?? null };
   db.prepare(
-    `INSERT INTO badges (id, recipient, badge, tokenId, issuedAt, expiresAt)
-     VALUES (@id, @recipient, @badge, @tokenId, @issuedAt, @expiresAt)`
-  ).run(badge);
+    `INSERT INTO badges (id, recipient, badge, tokenId, issuedAt, expiresAt, meta)
+     VALUES (@id, @recipient, @badge, @tokenId, @issuedAt, @expiresAt, @meta)`
+  ).run(payload);
 };
 
 export const deleteBadge = (id: string) => {
@@ -337,6 +418,411 @@ export const updateArticle = (
 
 export const deleteArticle = (id: string) => {
   db.prepare("DELETE FROM articles WHERE id = ?").run(id);
+};
+
+export type VaultRegistryRow = {
+  id: string;
+  name: string;
+  focus: string;
+  tvl: string;
+  activeProposals: number;
+  riskRating: string;
+  participation: string;
+  horizon: string;
+  overview: string;
+  thesis: string;
+  expectedOutcomes: string;
+  fundingStructure: string;
+  withdrawalConditions: string;
+  governanceModel: string;
+  deliverables: string;
+  reports: string;
+  datasets: string;
+  ipRights: string;
+  activity: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const listVaultRegistry = () => {
+  return db
+    .prepare("SELECT * FROM vault_registry ORDER BY updatedAt DESC")
+    .all() as VaultRegistryRow[];
+};
+
+export const getVaultRegistryById = (id: string) => {
+  return db
+    .prepare("SELECT * FROM vault_registry WHERE id = ?")
+    .get(id) as VaultRegistryRow | undefined;
+};
+
+export const createVaultRegistry = (entry: VaultRegistryRow) => {
+  db.prepare(
+    `INSERT INTO vault_registry (
+      id, name, focus, tvl, activeProposals, riskRating, participation, horizon,
+      overview, thesis, expectedOutcomes, fundingStructure, withdrawalConditions,
+      governanceModel, deliverables, reports, datasets, ipRights, activity,
+      createdAt, updatedAt
+    )
+    VALUES (
+      @id, @name, @focus, @tvl, @activeProposals, @riskRating, @participation, @horizon,
+      @overview, @thesis, @expectedOutcomes, @fundingStructure, @withdrawalConditions,
+      @governanceModel, @deliverables, @reports, @datasets, @ipRights, @activity,
+      @createdAt, @updatedAt
+    )`
+  ).run(entry);
+};
+
+const allowedVaultUpdateFields = new Set([
+  "name",
+  "focus",
+  "tvl",
+  "activeProposals",
+  "riskRating",
+  "participation",
+  "horizon",
+  "overview",
+  "thesis",
+  "expectedOutcomes",
+  "fundingStructure",
+  "withdrawalConditions",
+  "governanceModel",
+  "deliverables",
+  "reports",
+  "datasets",
+  "ipRights",
+  "activity",
+  "updatedAt",
+]);
+
+export const updateVaultRegistry = (
+  id: string,
+  updates: Partial<Omit<VaultRegistryRow, "id" | "createdAt">>
+) => {
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (!allowedVaultUpdateFields.has(key)) return;
+    fields.push(`${key} = ?`);
+    values.push(value);
+  });
+  if (fields.length === 0) return;
+  values.push(id);
+  db.prepare(`UPDATE vault_registry SET ${fields.join(", ")} WHERE id = ?`).run(
+    ...values
+  );
+};
+
+export const deleteVaultRegistry = (id: string) => {
+  db.prepare("DELETE FROM vault_registry WHERE id = ?").run(id);
+};
+
+export type LearnRegistryRow = {
+  id: string;
+  title: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const listLearnRegistry = () => {
+  return db
+    .prepare("SELECT * FROM learn_registry ORDER BY updatedAt DESC")
+    .all() as LearnRegistryRow[];
+};
+
+export const getLearnRegistryById = (id: string) => {
+  return db
+    .prepare("SELECT * FROM learn_registry WHERE id = ?")
+    .get(id) as LearnRegistryRow | undefined;
+};
+
+export const createLearnRegistry = (entry: LearnRegistryRow) => {
+  db.prepare(
+    `INSERT INTO learn_registry (id, title, description, createdAt, updatedAt)
+     VALUES (@id, @title, @description, @createdAt, @updatedAt)`
+  ).run(entry);
+};
+
+const allowedLearnUpdateFields = new Set(["title", "description", "updatedAt"]);
+
+export const updateLearnRegistry = (
+  id: string,
+  updates: Partial<Omit<LearnRegistryRow, "id" | "createdAt">>
+) => {
+  const fields: string[] = [];
+  const values: unknown[] = [];
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value === undefined) return;
+    if (!allowedLearnUpdateFields.has(key)) return;
+    fields.push(`${key} = ?`);
+    values.push(value);
+  });
+  if (fields.length === 0) return;
+  values.push(id);
+  db.prepare(`UPDATE learn_registry SET ${fields.join(", ")} WHERE id = ?`).run(
+    ...values
+  );
+};
+
+export const deleteLearnRegistry = (id: string) => {
+  db.prepare("DELETE FROM learn_registry WHERE id = ?").run(id);
+};
+
+export type IdentityLinkRow = {
+  id: string;
+  walletAddress: string;
+  githubHandle: string;
+  gistUrl: string;
+  signature: string;
+  message: string;
+  createdAt: string;
+  verifiedAt: string;
+};
+
+export const listIdentityLinks = () => {
+  return db
+    .prepare("SELECT * FROM identity_links ORDER BY verifiedAt DESC")
+    .all() as IdentityLinkRow[];
+};
+
+export const createIdentityLink = (link: IdentityLinkRow) => {
+  db.prepare(
+    `INSERT INTO identity_links (id, walletAddress, githubHandle, gistUrl, signature, message, createdAt, verifiedAt)
+     VALUES (@id, @walletAddress, @githubHandle, @gistUrl, @signature, @message, @createdAt, @verifiedAt)`
+  ).run(link);
+};
+
+export type ContributionRow = {
+  id: string;
+  walletAddress: string;
+  source: string;
+  type: string;
+  quantity: number | null;
+  points: number;
+  evidence: string | null;
+  occurredAt: string;
+  createdAt: string;
+  metadata: string | null;
+  status: string;
+  verifiedAt: string | null;
+};
+
+export const createContribution = (
+  entry: Omit<ContributionRow, "status" | "verifiedAt"> & {
+    status?: string;
+    verifiedAt?: string | null;
+  }
+) => {
+  const status = entry.status ?? "verified";
+  const verifiedAt = status === "verified" ? entry.verifiedAt ?? entry.createdAt : null;
+  const payload = { ...entry, status, verifiedAt };
+  db.prepare(
+    `INSERT INTO contributions (id, walletAddress, source, type, quantity, points, evidence, occurredAt, createdAt, metadata, status, verifiedAt)
+     VALUES (@id, @walletAddress, @source, @type, @quantity, @points, @evidence, @occurredAt, @createdAt, @metadata, @status, @verifiedAt)`
+  ).run(payload);
+};
+
+export const listContributions = () => {
+  return db
+    .prepare("SELECT * FROM contributions ORDER BY occurredAt DESC")
+    .all() as ContributionRow[];
+};
+
+export const listContributionsByAddress = (
+  walletAddress: string,
+  limit = 20
+) => {
+  return db
+    .prepare(
+      "SELECT * FROM contributions WHERE walletAddress = ? AND (status = 'verified' OR status IS NULL) ORDER BY occurredAt DESC LIMIT ?"
+    )
+    .all(walletAddress.toLowerCase(), limit) as ContributionRow[];
+};
+
+export const listContributionsByPeriod = (
+  startIso: string,
+  endIso: string
+) => {
+  return db
+    .prepare(
+      `SELECT * FROM contributions
+       WHERE (status = 'verified' OR status IS NULL)
+       AND datetime(occurredAt) >= datetime(?)
+       AND datetime(occurredAt) <= datetime(?)
+       ORDER BY occurredAt DESC`
+    )
+    .all(startIso, endIso) as ContributionRow[];
+};
+
+export const findContributionByEvidence = (evidence: string) => {
+  return db
+    .prepare("SELECT * FROM contributions WHERE evidence = ? LIMIT 1")
+    .get(evidence) as ContributionRow | undefined;
+};
+
+export const listContributionsByStatus = (
+  status: string,
+  limit = 100
+) => {
+  if (status === "verified") {
+    return db
+      .prepare(
+        "SELECT * FROM contributions WHERE status = 'verified' OR status IS NULL ORDER BY occurredAt DESC LIMIT ?"
+      )
+      .all(limit) as ContributionRow[];
+  }
+  return db
+    .prepare(
+      "SELECT * FROM contributions WHERE status = ? ORDER BY occurredAt DESC LIMIT ?"
+    )
+    .all(status, limit) as ContributionRow[];
+};
+
+export const listContributionsByAddressAndStatus = (
+  walletAddress: string,
+  status: string,
+  limit = 50
+) => {
+  if (status === "verified") {
+    return db
+      .prepare(
+        "SELECT * FROM contributions WHERE walletAddress = ? AND (status = 'verified' OR status IS NULL) ORDER BY occurredAt DESC LIMIT ?"
+      )
+      .all(walletAddress.toLowerCase(), limit) as ContributionRow[];
+  }
+  return db
+    .prepare(
+      "SELECT * FROM contributions WHERE walletAddress = ? AND status = ? ORDER BY occurredAt DESC LIMIT ?"
+    )
+    .all(walletAddress.toLowerCase(), status, limit) as ContributionRow[];
+};
+
+export const updateContributionStatus = (
+  id: string,
+  status: string,
+  points?: number | null
+) => {
+  const fields: string[] = ["status = ?"];
+  const values: unknown[] = [status];
+  if (points !== undefined) {
+    fields.push("points = ?");
+    values.push(points);
+  }
+  if (status === "verified") {
+    fields.push("verifiedAt = ?");
+    values.push(new Date().toISOString());
+  }
+  values.push(id);
+  db.prepare(`UPDATE contributions SET ${fields.join(", ")} WHERE id = ?`).run(
+    ...values
+  );
+};
+
+export const findIdentityLink = (walletAddress: string, githubHandle: string) => {
+  return db
+    .prepare(
+      "SELECT * FROM identity_links WHERE walletAddress = ? AND githubHandle = ? LIMIT 1"
+    )
+    .get(walletAddress.toLowerCase(), githubHandle) as IdentityLinkRow | undefined;
+};
+
+export const findIdentityLinkByGist = (gistUrl: string) => {
+  return db
+    .prepare("SELECT * FROM identity_links WHERE gistUrl = ? LIMIT 1")
+    .get(gistUrl) as IdentityLinkRow | undefined;
+};
+
+export type BadgeSnapshotRow = {
+  id: string;
+  period: string;
+  periodStart: string;
+  periodEnd: string;
+  rubricVersion: string;
+  thresholds: string | null;
+  generatedAt: string;
+  snapshotHash: string;
+  totalContributors: number;
+  awardsCount?: number;
+};
+
+export type BadgeAwardRow = {
+  id: string;
+  snapshotId: string;
+  walletAddress: string;
+  badgeTitle: string;
+  points: number;
+  issued: number;
+  issuedAt: string | null;
+  badgeId: string | null;
+};
+
+export const createBadgeSnapshot = (snapshot: BadgeSnapshotRow) => {
+  db.prepare(
+    `INSERT INTO badge_snapshots (id, period, periodStart, periodEnd, rubricVersion, thresholds, generatedAt, snapshotHash, totalContributors)
+     VALUES (@id, @period, @periodStart, @periodEnd, @rubricVersion, @thresholds, @generatedAt, @snapshotHash, @totalContributors)`
+  ).run(snapshot);
+};
+
+export const listBadgeSnapshots = () => {
+  return db
+    .prepare(
+      `SELECT s.*,
+        (SELECT COUNT(*) FROM badge_awards a WHERE a.snapshotId = s.id) as awardsCount
+       FROM badge_snapshots s
+       ORDER BY generatedAt DESC`
+    )
+    .all() as BadgeSnapshotRow[];
+};
+
+export const getBadgeSnapshotById = (id: string) => {
+  return db
+    .prepare(
+      `SELECT s.*,
+        (SELECT COUNT(*) FROM badge_awards a WHERE a.snapshotId = s.id) as awardsCount
+       FROM badge_snapshots s
+       WHERE s.id = ?`
+    )
+    .get(id) as BadgeSnapshotRow | undefined;
+};
+
+export const createBadgeAwards = (awards: BadgeAwardRow[]) => {
+  const insert = db.prepare(
+    `INSERT INTO badge_awards (id, snapshotId, walletAddress, badgeTitle, points, issued, issuedAt, badgeId)
+     VALUES (@id, @snapshotId, @walletAddress, @badgeTitle, @points, @issued, @issuedAt, @badgeId)`
+  );
+  const tx = db.transaction(() => {
+    awards.forEach((award) => insert.run(award));
+  });
+  tx();
+};
+
+export const listBadgeAwardsBySnapshot = (snapshotId: string) => {
+  return db
+    .prepare(
+      `SELECT * FROM badge_awards WHERE snapshotId = ? ORDER BY points DESC`
+    )
+    .all(snapshotId) as BadgeAwardRow[];
+};
+
+export const findActiveBadge = (recipient: string, badgeTitle: string) => {
+  return db
+    .prepare(
+      "SELECT * FROM badges WHERE recipient = ? AND badge = ? LIMIT 1"
+    )
+    .get(recipient, badgeTitle) as BadgeRow | undefined;
+};
+
+export const getNextBadgeTokenId = (badgeTitle: string, code: string) => {
+  const activeCount = db
+    .prepare("SELECT COUNT(*) as count FROM badges WHERE badge = ?")
+    .get(badgeTitle) as { count: number };
+  const archivedCount = db
+    .prepare("SELECT COUNT(*) as count FROM badge_archive WHERE badge = ?")
+    .get(badgeTitle) as { count: number };
+  const next = (activeCount?.count ?? 0) + (archivedCount?.count ?? 0) + 1;
+  return `${code}-${String(next).padStart(3, "0")}`;
 };
 
 export type ArticleVersionRow = {

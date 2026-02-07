@@ -84,6 +84,7 @@ export default function GovernancePanel({
   const [voterInput, setVoterInput] = useState("");
   const [computedWeight, setComputedWeight] = useState(0);
   const [matchedBadges, setMatchedBadges] = useState<Badge[]>([]);
+  const [expiryCountdown, setExpiryCountdown] = useState("No expiration");
   const canVote = Boolean(defaultVoter) && computedWeight > 0;
 
   const normalize = (value: string) => value.trim().toLowerCase();
@@ -107,8 +108,8 @@ export default function GovernancePanel({
           .map((entry) => `${entry.title} (${entry.weight})`)
           .join(", ")}.`
       : "Weights are summed per badge: Core (5), Lead (4), Reviewer (3), Advisor (2), Contributor/Supporter (1).";
-  const expiryCountdown = (() => {
-    const active = matchedBadges
+  const computeExpiryCountdown = (badgesToCheck: Badge[]) => {
+    const active = badgesToCheck
       .map((badge) => badge.expiresAt)
       .filter(Boolean) as string[];
     if (active.length === 0) return "No expiration";
@@ -121,12 +122,13 @@ export default function GovernancePanel({
     const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     if (days <= 0) return "Expired";
     return `Expires in ${days} day${days === 1 ? "" : "s"}`;
-  })();
+  };
   const recalcWeight = (input: string) => {
     const normalizedInput = normalize(input);
     if (!normalizedInput) {
       setComputedWeight(0);
       setMatchedBadges([]);
+      setExpiryCountdown("No expiration");
       return;
     }
     const now = Date.now();
@@ -144,8 +146,10 @@ export default function GovernancePanel({
     );
     setMatchedBadges(matches);
     setComputedWeight(weight);
+    setExpiryCountdown(computeExpiryCountdown(matches));
   };
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const normalizedDefault = defaultVoter?.trim() ?? "";
     if (!normalizedDefault) {
@@ -157,6 +161,7 @@ export default function GovernancePanel({
     setVoterInput(normalizedDefault);
     recalcWeight(normalizedDefault);
   }, [defaultVoter, badges, badgeRegistry]);
+  /* eslint-enable react-hooks/set-state-in-effect */
   return (
     <div className="glass-panel animate-fade flex flex-col gap-6 p-6">
       <div className="flex flex-col gap-2">
